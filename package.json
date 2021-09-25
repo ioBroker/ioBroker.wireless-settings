@@ -1,0 +1,59 @@
+{
+  "name": "iobroker.network",
+  "version": "0.1.0",
+  "description": "This adapter is used to anonymously collect the data on the central server for scientific research",
+  "author": {
+    "name": "bluefox",
+    "email": "dogafox@gmail.com"
+  },
+  "homepage": "https://github.com/ioBroker/ioBroker.network",
+  "license": "MIT",
+  "keywords": [
+    "network",
+    "data mining"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ioBroker/ioBroker.network"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^2.4.0"
+  },
+  "devDependencies": {
+    "@iobroker/testing": "^2.4.0",
+    "@types/chai": "^4.2.14",
+    "@types/chai-as-promised": "^7.1.3",
+    "@types/gulp": "^4.0.8",
+    "@types/mocha": "^8.2.0",
+    "@types/node": "^14.14.21",
+    "@types/proxyquire": "^1.3.28",
+    "@types/sinon": "^9.0.10",
+    "@types/sinon-chai": "^3.2.5",
+    "axios": "^0.21.1",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "eslint": "^7.11.0",
+    "gulp": "^4.0.2",
+    "mocha": "^8.2.1",
+    "proxyquire": "^2.1.3",
+    "sinon": "^9.2.3",
+    "sinon-chai": "^3.5.0",
+    "@alcalzone/release-script": "^1.8.3"
+  },
+  "main": "main.js",
+  "scripts": {
+    "test:js": "mocha \"{!(node_modules|test)/**/*.test.js,*.test.js,test/**/test!(PackageFiles|Startup).js}\"",
+    "test:package": "mocha test/package --exit",
+    "test:unit": "mocha test/unit --exit",
+    "test:integration": "mocha test/integration --exit",
+    "test": "npm run test:js && npm run test:package",
+    "prepublishOnly": "node node_modules/gulp/bin/gulp.js",
+    "lint": "eslint",
+    "build": "gulp",
+    "release": "release-script"
+  },
+  "bugs": {
+    "url": "https://github.com/ioBroker/ioBroker.network/issues"
+  },
+  "readmeFilename": "README.md"
+}

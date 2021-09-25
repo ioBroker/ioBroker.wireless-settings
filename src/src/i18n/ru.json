@@ -1,0 +1,11 @@
+{
+  "Options": "Параметры",
+  "Objects": "Объекты",
+  "URL Server": "URL-адрес сервера",
+  "Server": "Сервер",
+  "Send interval": "Интервал отправки",
+  "seconds": "секунды",
+  "De-bounces": "De-bounces",
+  "debounce": "устранение дребезга",
+  "ms": "мс"
+}
