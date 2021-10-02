@@ -1,41 +1,46 @@
+/* eslint-disable */
 import React from 'react';
 import ReactDOM from 'react-dom';
 import * as Sentry from '@sentry/browser';
 import * as SentryIntegrations from '@sentry/integrations';
-import { MuiThemeProvider} from '@material-ui/core/styles';
+import { MuiThemeProvider } from '@material-ui/core/styles';
+import { SnackbarProvider } from 'notistack';
 import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
-import {version} from '../package.json';
 import theme from '@iobroker/adapter-react/Theme';
 import Utils from '@iobroker/adapter-react/Components/Utils';
+import App from './App';
+import * as serviceWorker from './serviceWorker';
+import { version } from '../package.json';
 
-window.adapterName = 'consumption';
+window.adapterName = 'network';
 let themeName = Utils.getThemeName();
 
-console.log('iobroker.' + window.adapterName + '@' + version + ' using theme "' + themeName + '"');
+console.log(`iobroker.${window.adapterName}@${version} using theme "${themeName}"`);
 
 function build() {
     return ReactDOM.render(
         <MuiThemeProvider theme={theme(themeName)}>
-            <App common={{}}
-                onThemeChange={_theme => {
-                    themeName = _theme;
-                    build();
-                }}
-            />
+            <SnackbarProvider>
+                <App
+                    common={{}}
+                    onThemeChange={_theme => {
+                        themeName = _theme;
+                        build();
+                    }}
+                />
+            </SnackbarProvider>
         </MuiThemeProvider>,
-        document.getElementById('root')
+        document.getElementById('root'),
     );
 }
 
 if (window.location.host !== 'localhost:3000' && false) {
     Sentry.init({
         dsn: 'https://5ad729dbed504d15aa8bde423cae9a8e@sentry.iobroker.net/57',
-        release: 'iobroker.' + window.adapterName + '@' + version,
+        release: `iobroker.${window.adapterName}@${version}`,
         integrations: [
-            new SentryIntegrations.Dedupe()
-        ]
+            new SentryIntegrations.Dedupe(),
+        ],
     });
 }
 

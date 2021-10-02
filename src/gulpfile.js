@@ -2,14 +2,13 @@
  * Copyright 2018-2020 bluefox <dogafox@gmail.com>
  *
  * MIT License
- * 
- **/
-'use strict';
+ *
+ * */
 
 const gulp = require('gulp');
-const fs   = require('fs');
+const fs = require('fs');
 
-const dir = __dirname + '/src/i18n/';
+const dir = `${__dirname}/src/i18n/`;
 gulp.task('i18n=>flat', done => {
     const files = fs.readdirSync(dir).filter(name => name.match(/\.json$/));
     const index = {};
@@ -30,8 +29,8 @@ gulp.task('i18n=>flat', done => {
     const keys = Object.keys(index);
     keys.sort();
 
-    if (!fs.existsSync(dir + '/flat/')) {
-        fs.mkdirSync(dir + '/flat/');
+    if (!fs.existsSync(`${dir}/flat/`)) {
+        fs.mkdirSync(`${dir}/flat/`);
     }
 
     langs.forEach(lang => {
@@ -39,27 +38,27 @@ gulp.task('i18n=>flat', done => {
         keys.forEach(key => {
             words.push(index[key][lang]);
         });
-        fs.writeFileSync(dir + '/flat/' + lang + '.txt', words.join('\n'));
+        fs.writeFileSync(`${dir}/flat/${lang}.txt`, words.join('\n'));
     });
-    fs.writeFileSync(dir + '/flat/index.txt', keys.join('\n'));
+    fs.writeFileSync(`${dir}/flat/index.txt`, keys.join('\n'));
     done();
 });
 
 gulp.task('flat=>i18n', done => {
-    if (!fs.existsSync(dir + '/flat/')) {
-        console.error(dir + '/flat/ directory not found');
+    if (!fs.existsSync(`${dir}/flat/`)) {
+        console.error(`${dir}/flat/ directory not found`);
         return done();
     }
-    const keys = fs.readFileSync(dir + '/flat/index.txt').toString().split(/[\r\n]/);
+    const keys = fs.readFileSync(`${dir}/flat/index.txt`).toString().split(/[\r\n]/);
     while (!keys[keys.length - 1]) keys.splice(keys.length - 1, 1);
 
-    const files = fs.readdirSync(dir + '/flat/').filter(name => name.match(/\.txt$/) && name !== 'index.txt');
+    const files = fs.readdirSync(`${dir}/flat/`).filter(name => name.match(/\.txt$/) && name !== 'index.txt');
     const index = {};
     const langs = [];
     files.forEach(file => {
         const lang = file.replace(/\.txt$/, '');
         langs.push(lang);
-        const lines = fs.readFileSync(dir + '/flat/' + file).toString().split(/[\r\n]/);
+        const lines = fs.readFileSync(`${dir}/flat/${file}`).toString().split(/[\r\n]/);
         lines.forEach((word, i) => {
             index[keys[i]] = index[keys[i]] || {};
             index[keys[i]][lang] = word;
@@ -69,11 +68,11 @@ gulp.task('flat=>i18n', done => {
         const words = {};
         keys.forEach((key, line) => {
             if (!index[key]) {
-                console.log('No word ' + key + ', ' + lang + ', line: ' + line);
+                console.log(`No word ${key}, ${lang}, line: ${line}`);
             }
             words[key] = index[key][lang];
         });
-        fs.writeFileSync(dir + '/' + lang + '.json', JSON.stringify(words, null, 2));
+        fs.writeFileSync(`${dir}/${lang}.json`, JSON.stringify(words, null, 2));
     });
     done();
 });

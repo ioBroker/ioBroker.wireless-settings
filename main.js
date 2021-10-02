@@ -3,6 +3,12 @@
 const utils       = require('@iobroker/adapter-core');
 const axios       = require('axios');
 const crypto      = require('crypto');
+const network = require('network');
+const wifi = require('node-wifi');
+const networkInterfaces = require('os').networkInterfaces;
+const Iconv = require('iconv').Iconv;
+const si = require('systeminformation');
+const si2 = require('@jedithepro/system-info');
 const adapterName = require('./package.json').name.split('.').pop();
 
 /**
@@ -10,6 +16,58 @@ const adapterName = require('./package.json').name.split('.').pop();
  * @type {ioBroker.Adapter}
  */
 let adapter;
+
+
+const triggers = {
+    interfaces: (input, response) => {
+        si.networkInterfaces(result => {
+            if (process.platform === 'win32') {
+                let nativeInterfaces = networkInterfaces();
+                response(result.map(interfaceItem => {
+                    interfaceItem.iface = Object.keys(nativeInterfaces).find(key => nativeInterfaces[key][0].mac === interfaceItem.mac)
+                    return interfaceItem
+                }));
+            } else {
+                response(result);
+            }
+        });
+    },
+    wifi: (input, response) => {
+        si.wifiNetworks(response);
+    },
+    wifiConnections: (input, response) => {
+        si.wifiConnections(response);
+    },
+    wifiConnect: (input, response) => {
+        wifi.init({
+            iface: null
+        });
+        wifi.connect({ ssid: input.ssid, password: input.password }, error => {
+            if (error) {
+                response({result: false, error: error});
+            }
+            response({result: true});
+        });
+    },
+    wifiDisconnect: (input, response) => {
+        wifi.init({
+            iface: null
+        });
+        wifi.disconnect(error => {
+            if (error) {
+                response({result: false, error: error});
+            }
+            response({result: true});
+        });
+    },
+    changeInterface: (input, response) => {
+        if (input.rootPassword !== 'test') {
+            response(false);
+        }
+        response(true);
+        console.log(input.data);
+    },
+}
 
 /**
  * Starts the adapter instance
@@ -24,11 +82,21 @@ function startAdapter(options) {
         // start here!
         ready: main, // Main method defined below for readability
 
+        message: (obj) => {
+            if (typeof obj === 'object' && obj.callback) {
+                const response = (result) => adapter.sendTo(obj.from, obj.command, result, obj.callback);
+
+                triggers[obj.command](obj.message, response);
+            }
+        }
+
     }));
 }
 
 async function main() {
-    
+    console.log(networkInterfaces());
+    // si.networkInterfaces(console.log);
+    // si2.networkInterfaces(console.log);
 }
 
 // @ts-ignore parent is a valid property on module
