@@ -8,6 +8,8 @@ import Loader from '@iobroker/adapter-react/Components/Loader';
 import I18n from '@iobroker/adapter-react/i18n';
 import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
 import WifiIcon from '@material-ui/icons/Wifi';
+import SignalWifi4BarIcon from '@material-ui/icons/SignalWifi4Bar';
+import SignalWifi4BarLockIcon from '@material-ui/icons/SignalWifi4BarLock';
 import {
     Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel,
 } from '@material-ui/core';
@@ -67,9 +69,16 @@ class App extends GenericApp {
     refresh() {
         this.socket.sendTo('network.0', 'interfaces', null).then(result => {
             result.sort((item1, item2) => (item1.mac > item2.mac ? -1 : 1));
-            result.sort((item1, item2) => (item1.type === 'wired' ? -1 : 1));
-            result.sort((item1, item2) => (!item1.virtual ? -1 : 1));
+            result.sort(item1 => (item1.type === 'wired' ? -1 : 1));
+            result.sort(item1 => (!item1.virtual ? -1 : 1));
             result = result.filter(interfaceItem => interfaceItem.ip4 !== '127.0.0.1');
+            result = result.map(interfaceItem => {
+                if (typeof interfaceItem.dhcp === 'string') {
+                    interfaceItem.dhcp = JSON.parse(interfaceItem.dhcp);
+                }
+
+                return interfaceItem;
+            });
             this.setState({ interfaces: result, interfacesChanged: result });
         });
         this.socket.sendTo('network.0', 'wifi', null).then(result => {
@@ -95,9 +104,11 @@ class App extends GenericApp {
             rootPassword: password,
             data: this.state.interfacesChanged[index],
         }).then(result => {
-            result
-                ? this.props.enqueueSnackbar(I18n.t('Interface updated'), { variant: 'success' })
-                : this.props.enqueueSnackbar(I18n.t('Interface not updated'), { variant: 'error' });
+            if (result) {
+                this.props.enqueueSnackbar(I18n.t('Interface updated'), { variant: 'success' });
+            } else {
+                this.props.enqueueSnackbar(I18n.t('Interface not updated'), { variant: 'error' });
+            }
         });
     }
 
@@ -105,19 +116,23 @@ class App extends GenericApp {
         this.socket.sendTo('network.0', 'wifiConnect', {
             ssid, password,
         }).then(result => {
-            result.result
-                ? this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' })
-                : this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
-            this.refresh();
+            if (result.result) {
+                this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
+                this.refresh();
+            } else {
+                this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
+            }
         });
     }
 
     disconnect = () => {
         this.socket.sendTo('network.0', 'wifiDisconnect', null).then(result => {
-            result.result
-                ? this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' })
-                : this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
-            this.refresh();
+            if (result.result) {
+                this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' });
+                this.refresh();
+            } else {
+                this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
+            }
         });
     }
 
@@ -188,41 +203,26 @@ class App extends GenericApp {
             <div>
                 <FormControlLabel
                     control={<Checkbox
-                        checked={JSON.parse(interfaceItem.dhcp)}
+                        checked={interfaceItem.dhcp}
                         onChange={e => this.setInterfaceParam(i, 'dhcp', e.target.checked)}
                     />}
                     label={I18n.t('DHCP')}
                 />
             </div>
-            {JSON.parse(interfaceItem.dhcp)
-                ? <>
-                    <div>
-                        {interfaceItem.ip4}
-                    </div>
-                    <div>
-                        {interfaceItem.ip4subnet}
-                    </div>
-                    <div>
-                        {interfaceItem.ip6}
-                    </div>
-                    <div>
-                        {interfaceItem.ip6subnet}
-                    </div>
-                </>
-                : <>
-                    <div>
-                        <TextField value={interfaceItem.ip4} label={I18n.t('IPv4')} onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)} />
-                    </div>
-                    <div>
-                        <TextField value={interfaceItem.ip4subnet} label={I18n.t('IPv4 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} />
-                    </div>
-                    <div>
-                        <TextField value={interfaceItem.ip6} label={I18n.t('IPv6')} onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)} />
-                    </div>
-                    <div>
-                        <TextField value={interfaceItem.ip6subnet} label={I18n.t('IPv6 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} />
-                    </div>
-                </>}
+            <>
+                <div>
+                    <TextField value={interfaceItem.ip4} label={I18n.t('IPv4')} onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)} disabled={interfaceItem.dhcp} />
+                </div>
+                <div>
+                    <TextField value={interfaceItem.ip4subnet} label={I18n.t('IPv4 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} disabled={interfaceItem.dhcp} />
+                </div>
+                <div>
+                    <TextField value={interfaceItem.ip6} label={I18n.t('IPv6')} onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)} disabled={interfaceItem.dhcp} />
+                </div>
+                <div>
+                    <TextField value={interfaceItem.ip6subnet} label={I18n.t('IPv6 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} disabled={interfaceItem.dhcp} />
+                </div>
+            </>
             <div>
                 <Button onClick={() => this.setState({
                     sudoDialog: i,
@@ -245,10 +245,19 @@ class App extends GenericApp {
 
     renderWifi() {
         return this.state.wifi.map((wifi, i) => <div key={i}>
-            <Button onClick={() => this.setState({
-                wifiDialog: wifi.ssid,
-            })}
+            <Button onClick={() => {
+                if (wifi.security.includes('Open')) {
+                    this.connect(wifi.ssid, '');
+                } else {
+                    this.setState({
+                        wifiDialog: wifi.ssid,
+                    });
+                }
+            }}
             >
+                {wifi.security.includes('Open')
+                    ? <SignalWifi4BarIcon />
+                    : <SignalWifi4BarLockIcon />}
                 {wifi.ssid}
             </Button>
             {' '}
