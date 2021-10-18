@@ -6,6 +6,7 @@ const crypto      = require('crypto');
 const network = require('network');
 const wifi = require('node-wifi');
 const networkInterfaces = require('os').networkInterfaces;
+const dns       = require('dns');
 const Iconv = require('iconv').Iconv;
 const si = require('systeminformation');
 const si2 = require('@jedithepro/system-info');
@@ -22,10 +23,10 @@ const triggers = {
     interfaces: (input, response) => {
         si.networkInterfaces(result => {
             if (process.platform === 'win32') {
-                let nativeInterfaces = networkInterfaces();
+                const nativeInterfaces = networkInterfaces();
                 response(result.map(interfaceItem => {
-                    interfaceItem.iface = Object.keys(nativeInterfaces).find(key => nativeInterfaces[key][0].mac === interfaceItem.mac)
-                    return interfaceItem
+                    interfaceItem.iface = Object.keys(nativeInterfaces).find(key => nativeInterfaces[key][0].mac === interfaceItem.mac);
+                    return interfaceItem;
                 }));
             } else {
                 response(result);
@@ -34,6 +35,12 @@ const triggers = {
     },
     wifi: (input, response) => {
         si.wifiNetworks(response);
+    },
+    dns: (input, response) => {
+        response(dns.getServers());
+    },
+    changeDns: (input, response) => {
+        console.log(input.data);
     },
     wifiConnections: (input, response) => {
         si.wifiConnections(response);
@@ -67,7 +74,7 @@ const triggers = {
         response(true);
         console.log(input.data);
     },
-}
+};
 
 /**
  * Starts the adapter instance

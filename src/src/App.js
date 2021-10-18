@@ -30,6 +30,21 @@ const styles = () => ({
     },
 });
 
+const ipValidate = (ip, isMask) => {
+    let result = true;
+    const matches = ip.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$/);
+    if (!matches) {
+        result = false;
+    } else {
+        result = !matches.slice(1).map(el => parseInt(el) >= 0 && parseInt(el) <= 255).includes(false);
+
+        if (isMask && result) {
+            result = (parseInt(matches[1]) * 256 ** 3 + parseInt(matches[2]) * 256 ** 2 + parseInt(matches[3]) * 256 + parseInt(matches[4])).toString(2).match(/^1+0+$/);
+        }
+    }
+    return result;
+};
+
 class App extends GenericApp {
     constructor(props) {
         const extendedProps = {};
@@ -54,6 +69,7 @@ class App extends GenericApp {
             interfaces: [],
             interfacesChanged: [],
             wifi: [],
+            dns: [],
             wifiConnections: [],
             sudoDialog: false,
             sudoDialogPassword: '',
@@ -83,6 +99,9 @@ class App extends GenericApp {
         });
         this.socket.sendTo('network.0', 'wifi', null).then(result => {
             this.setState({ wifi: result });
+        });
+        this.socket.sendTo('network.0', 'dns', null).then(result => {
+            this.setState({ dns: result });
         });
         this.socket.sendTo('network.0', 'wifiConnections', null).then(result => {
             this.setState({ wifiConnections: result });
@@ -199,6 +218,12 @@ class App extends GenericApp {
     }
 
     renderInterface(interfaceItem, i) {
+        let buttonDisabled = false;
+
+        if (!interfaceItem.dhcp) {
+            buttonDisabled = !ipValidate(interfaceItem.ip4) || !ipValidate(interfaceItem.ip4subnet, true);
+        }
+
         return <>
             <div>
                 <FormControlLabel
@@ -214,7 +239,7 @@ class App extends GenericApp {
                     <TextField value={interfaceItem.ip4} label={I18n.t('IPv4')} onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)} disabled={interfaceItem.dhcp} />
                 </div>
                 <div>
-                    <TextField value={interfaceItem.ip4subnet} label={I18n.t('IPv4 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} disabled={interfaceItem.dhcp} />
+                    <TextField value={interfaceItem.ip4subnet} label={I18n.t('IPv4 netmask')} onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)} disabled={interfaceItem.dhcp} />
                 </div>
                 <div>
                     <TextField value={interfaceItem.ip6} label={I18n.t('IPv6')} onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)} disabled={interfaceItem.dhcp} />
@@ -224,9 +249,11 @@ class App extends GenericApp {
                 </div>
             </>
             <div>
-                <Button onClick={() => this.setState({
-                    sudoDialog: i,
-                })}
+                <Button
+                    disabled={buttonDisabled}
+                    onClick={() => this.setState({
+                        sudoDialog: i,
+                    })}
                 >
                     {I18n.t('Save')}
                 </Button>
@@ -240,6 +267,30 @@ class App extends GenericApp {
                     ? JSON.stringify(this.state.wifi, null, 2) + JSON.stringify(this.state.wifiConnections, null, 2)
                     : null}
             </pre>
+        </>;
+    }
+
+    renderDns() {
+        return <>
+            {
+                this.state.dns.map((dnsRecord, i) => <div>
+                    <TextField
+                        key={i}
+                        value={dnsRecord}
+                        label={I18n.t('DNS record')}
+                        onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)}
+                    />
+                </div>)
+            }
+            <div>
+                <Button
+                    onClick={() => this.setState({
+                        sudoDialog: '',
+                    })}
+                >
+                    {I18n.t('Save')}
+                </Button>
+            </div>
         </>;
     }
 
@@ -294,6 +345,7 @@ class App extends GenericApp {
 
                 <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>
                     {this.renderInterface(this.state.interfacesChanged[this.getSelectedTab()], this.getSelectedTab())}
+                    {this.renderDns()}
                 </div>
                 {this.renderRootDialog()}
                 {this.renderWifiDialog()}
