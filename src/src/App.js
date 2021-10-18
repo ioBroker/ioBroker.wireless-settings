@@ -260,7 +260,7 @@ class App extends GenericApp {
             </div>
             {interfaceItem.type === 'wireless'
                 ? this.renderWifi()
-                : null}
+                : this.renderWifi()}
             <pre>
                 {JSON.stringify(interfaceItem, null, 2)}
                 {interfaceItem.type === 'wireless'

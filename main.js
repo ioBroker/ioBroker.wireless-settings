@@ -11,6 +11,7 @@ const Iconv = require('iconv').Iconv;
 const si = require('systeminformation');
 const si2 = require('@jedithepro/system-info');
 const adapterName = require('./package.json').name.split('.').pop();
+const childProcess = require('child_process');
 
 /**
  * The adapter instance
@@ -57,15 +58,21 @@ const triggers = {
         });
     },
     wifiDisconnect: (input, response) => {
-        wifi.init({
-            iface: null
-        });
-        wifi.disconnect(error => {
-            if (error) {
-                response({result: false, error: error});
-            }
+        if (process.platform === 'win32') {
+            wifi.init({
+                iface: null
+            });
+            wifi.disconnect(error => {
+                if (error) {
+                    response({result: false, error: error});
+                }
+                response({result: true});
+            });
+        } else {
+            let ssid = childProcess.execSync('iwgetid -r').toString().trim();
+            childProcess.execSync(`nmcli c down '${ssid}'`);
             response({result: true});
-        });
+        }
     },
     changeInterface: (input, response) => {
         if (input.rootPassword !== 'test') {
