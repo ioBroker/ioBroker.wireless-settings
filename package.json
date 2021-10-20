@@ -21,6 +21,7 @@
     "@jedithepro/system-info": "^3.0.0",
     "iconv": "^3.0.0",
     "network": "^0.6.0",
+    "network-config": "^3.0.0",
     "node-wifi": "^2.0.15",
     "sudo": "^1.0.3",
     "systeminformation": "^5.9.4"

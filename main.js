@@ -30,6 +30,20 @@ const triggers = {
                     return interfaceItem;
                 }));
             } else {
+                const consoleInterfaces = childProcess.execSync('ip a | grep -P \'^[0-9]+:\'').toString().trim().
+                    split('\n').map(consoleInterface => ({
+                        iface: consoleInterface.match(/^[0-9]+: (.*?):/)[1],
+                        ip4: '',
+                        ip4subnet: '',
+                        ip6: '',
+                        ip6subnet: '',
+                        dhcp: false,
+                    }));
+                consoleInterfaces.forEach(consoleInterface => {
+                    if (!result.find(interfaceItem => interfaceItem.iface === consoleInterface.iface)) {
+                        result.push(consoleInterface);
+                    }
+                })
                 response(result);
             }
         });
@@ -75,11 +89,17 @@ const triggers = {
         }
     },
     changeInterface: (input, response) => {
-        if (input.rootPassword !== 'test') {
-            response(false);
+        if (process.platform === 'win32') {
+            if (input.rootPassword !== 'test') {
+                response(false);
+            }
+        } else {
+            console.log(input);
+            childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} ${input.data.ip4} netmask ${input.data.ip4subnet}`).toString().trim();
+            // childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} down`).toString().trim();
+            // childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} up`).toString().trim();
         }
         response(true);
-        console.log(input.data);
     },
 };
 
@@ -108,9 +128,11 @@ function startAdapter(options) {
 }
 
 async function main() {
-    console.log(networkInterfaces());
+    // console.log(networkInterfaces());
     // si.networkInterfaces(console.log);
     // si2.networkInterfaces(console.log);
+
+    console.log(childProcess.execSync('ip a | grep -P \'^[0-9]+:\'').toString().trim())
 }
 
 // @ts-ignore parent is a valid property on module

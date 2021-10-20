@@ -125,6 +125,7 @@ class App extends GenericApp {
         }).then(result => {
             if (result) {
                 this.props.enqueueSnackbar(I18n.t('Interface updated'), { variant: 'success' });
+                this.refresh();
             } else {
                 this.props.enqueueSnackbar(I18n.t('Interface not updated'), { variant: 'error' });
             }
@@ -258,8 +259,8 @@ class App extends GenericApp {
                     {I18n.t('Save')}
                 </Button>
             </div>
-            {interfaceItem.type === 'wireless'
-                ? this.renderWifi()
+            {interfaceItem.type === 'wired'
+                ? null
                 : this.renderWifi()}
             <pre>
                 {JSON.stringify(interfaceItem, null, 2)}
@@ -273,9 +274,8 @@ class App extends GenericApp {
     renderDns() {
         return <>
             {
-                this.state.dns.map((dnsRecord, i) => <div>
+                this.state.dns.map((dnsRecord, i) => <div key={i}>
                     <TextField
-                        key={i}
                         value={dnsRecord}
                         label={I18n.t('DNS record')}
                         onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)}
