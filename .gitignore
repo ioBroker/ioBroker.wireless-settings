@@ -16,3 +16,5 @@ admin/i18n/*/flat.txt
 /src/package-lock.json
 /package-lock.json
 /src/.eslintcache
+/pnpm-lock.yaml
+/src/pnpm-lock.yaml

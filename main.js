@@ -132,7 +132,7 @@ async function main() {
     // si.networkInterfaces(console.log);
     // si2.networkInterfaces(console.log);
 
-    console.log(childProcess.execSync('ip a | grep -P \'^[0-9]+:\'').toString().trim())
+    //console.log(childProcess.execSync('ip a | grep -P \'^[0-9]+:\'').toString().trim())
 }
 
 // @ts-ignore parent is a valid property on module
