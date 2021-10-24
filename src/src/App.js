@@ -11,7 +11,7 @@ import WifiIcon from '@material-ui/icons/Wifi';
 import SignalWifi4BarIcon from '@material-ui/icons/SignalWifi4Bar';
 import SignalWifi4BarLockIcon from '@material-ui/icons/SignalWifi4BarLock';
 import {
-    Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel,
+    Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel, Grid, Container,
 } from '@material-ui/core';
 import { withSnackbar } from 'notistack';
 
@@ -173,13 +173,25 @@ class App extends GenericApp {
                 />
             </DialogContent>
             <DialogActions>
-                <Button onClick={() => {
-                    this.sendData(this.state.sudoDialog, this.state.sudoDialogPassword);
-                    this.setState({
+                <Button
+                    variant="contained"
+                    onClick={() => this.setState({
                         sudoDialog: false,
                         sudoDialogPassword: '',
-                    });
-                }}
+                    })}
+                >
+                    {I18n.t('Cancel')}
+                </Button>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                        this.sendData(this.state.sudoDialog, this.state.sudoDialogPassword);
+                        this.setState({
+                            sudoDialog: false,
+                            sudoDialogPassword: '',
+                        });
+                    }}
                 >
                     {I18n.t('Send')}
                 </Button>
@@ -204,13 +216,25 @@ class App extends GenericApp {
                 />
             </DialogContent>
             <DialogActions>
-                <Button onClick={() => {
-                    this.connect(this.state.wifiDialog, this.state.wifiDialogPassword);
-                    this.setState({
+                <Button
+                    variant="contained"
+                    onClick={() => this.setState({
                         wifiDialog: false,
                         wifiDialogPassword: '',
-                    });
-                }}
+                    })}
+                >
+                    {I18n.t('Cancel')}
+                </Button>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                        this.connect(this.state.wifiDialog, this.state.wifiDialogPassword);
+                        this.setState({
+                            wifiDialog: false,
+                            wifiDialogPassword: '',
+                        });
+                    }}
                 >
                     {I18n.t('Send')}
                 </Button>
@@ -226,47 +250,54 @@ class App extends GenericApp {
         }
 
         return <>
-            <div>
-                <FormControlLabel
-                    control={<Checkbox
-                        checked={interfaceItem.dhcp}
-                        onChange={e => this.setInterfaceParam(i, 'dhcp', e.target.checked)}
-                    />}
-                    label={I18n.t('DHCP')}
-                />
-            </div>
-            <>
-                <div>
-                    <TextField value={interfaceItem.ip4} label={I18n.t('IPv4')} onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)} disabled={interfaceItem.dhcp} />
-                </div>
-                <div>
-                    <TextField value={interfaceItem.ip4subnet} label={I18n.t('IPv4 netmask')} onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)} disabled={interfaceItem.dhcp} />
-                </div>
-                <div>
-                    <TextField value={interfaceItem.ip6} label={I18n.t('IPv6')} onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)} disabled={interfaceItem.dhcp} />
-                </div>
-                <div>
-                    <TextField value={interfaceItem.ip6subnet} label={I18n.t('IPv6 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} disabled={interfaceItem.dhcp} />
-                </div>
-            </>
-            <div>
-                <Button
-                    disabled={buttonDisabled}
-                    onClick={() => this.setState({
-                        sudoDialog: i,
-                    })}
-                >
-                    {I18n.t('Save')}
-                </Button>
-            </div>
-            {interfaceItem.type === 'wired'
-                ? null
-                : this.renderWifi()}
+            <Grid container>
+                <Grid item>
+                    <div>
+                        <FormControlLabel
+                            control={<Checkbox
+                                checked={interfaceItem.dhcp}
+                                onChange={e => this.setInterfaceParam(i, 'dhcp', e.target.checked)}
+                            />}
+                            label={I18n.t('DHCP')}
+                        />
+                    </div>
+                    <>
+                        <div>
+                            <TextField value={interfaceItem.ip4} label={I18n.t('IPv4')} onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)} disabled={interfaceItem.dhcp} />
+                        </div>
+                        <div>
+                            <TextField value={interfaceItem.ip4subnet} label={I18n.t('IPv4 netmask')} onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)} disabled={interfaceItem.dhcp} />
+                        </div>
+                        <div>
+                            <TextField value={interfaceItem.ip6} label={I18n.t('IPv6')} onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)} disabled={interfaceItem.dhcp} />
+                        </div>
+                        <div>
+                            <TextField value={interfaceItem.ip6subnet} label={I18n.t('IPv6 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} disabled={interfaceItem.dhcp} />
+                        </div>
+                    </>
+                    <div>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            disabled={buttonDisabled}
+                            onClick={() => this.setState({
+                                sudoDialog: i,
+                            })}
+                        >
+                            {I18n.t('Save')}
+                        </Button>
+                    </div>
+                    {this.renderDns()}
+                </Grid>
+                {interfaceItem.type === 'wired'
+                    ? null
+                    : <Grid item>{this.renderWifi()}</Grid>}
+            </Grid>
             <pre>
-                {JSON.stringify(interfaceItem, null, 2)}
-                {interfaceItem.type === 'wireless'
+                {/* {interfaceItem.type === 'wireless'
                     ? JSON.stringify(this.state.wifi, null, 2) + JSON.stringify(this.state.wifiConnections, null, 2)
-                    : null}
+                    : null} */}
+                {/* {JSON.stringify(interfaceItem, null, 2)} */}
             </pre>
         </>;
     }
@@ -284,6 +315,8 @@ class App extends GenericApp {
             }
             <div>
                 <Button
+                    variant="contained"
+                    color="primary"
                     onClick={() => this.setState({
                         sudoDialog: '',
                     })}
@@ -295,30 +328,35 @@ class App extends GenericApp {
     }
 
     renderWifi() {
-        return this.state.wifi.map((wifi, i) => <div key={i}>
-            <Button onClick={() => {
-                if (wifi.security.includes('Open')) {
-                    this.connect(wifi.ssid, '');
-                } else {
-                    this.setState({
-                        wifiDialog: wifi.ssid,
-                    });
-                }
-            }}
-            >
-                {wifi.security.includes('Open')
-                    ? <SignalWifi4BarIcon />
-                    : <SignalWifi4BarLockIcon />}
-                {wifi.ssid}
-            </Button>
-            {' '}
-            {this.state.wifiConnections.length && wifi.ssid === this.state.wifiConnections[0].ssid
-                ? <>
-                    connected
-                    <Button onClick={this.disconnect}>{I18n.t('Disconnect')}</Button>
-                </>
-                : ''}
-        </div>);
+        return this.state.wifi.map((wifi, i) => {
+            const connected = this.state.wifiConnections.length && wifi.ssid === this.state.wifiConnections[0].ssid;
+            return <div key={i}>
+                <Button
+                    variant={connected ? 'contained' : undefined}
+                    color={connected ? 'primary' : undefined}
+                    onClick={() => {
+                        if (wifi.security.includes('Open')) {
+                            this.connect(wifi.ssid, '');
+                        } else {
+                            this.setState({
+                                wifiDialog: wifi.ssid,
+                            });
+                        }
+                    }}
+                >
+                    {wifi.security.includes('Open')
+                        ? <SignalWifi4BarIcon />
+                        : <SignalWifi4BarLockIcon />}
+                    {wifi.ssid}
+                </Button>
+                {' '}
+                {connected
+                    ? <>
+                        <Button onClick={this.disconnect}>{I18n.t('Disconnect')}</Button>
+                    </>
+                    : ''}
+            </div>;
+        });
     }
 
     render() {
@@ -330,25 +368,28 @@ class App extends GenericApp {
 
         return <MuiThemeProvider theme={this.state.theme}>
             <div className="App" style={{ background: this.state.themeType === 'dark' ? '#000' : '#FFF' }}>
-                <AppBar position="static">
+                <Container>
+                    <AppBar position="static">
 
-                    <Tabs value={this.getSelectedTab()} onChange={(e, index) => this.selectTab(index, index)} variant="scrollable">
-                        {this.state.interfaces.map((interfaceItem, i) => <Tab
-                            key={i}
-                            label={<div className={this.props.classes.tabContainer}>
-                                {interfaceItem.type === 'wired' ? <SettingsInputComponentIcon /> : <WifiIcon />}
-                                {interfaceItem.iface}
-                            </div>}
-                        />)}
-                    </Tabs>
-                </AppBar>
+                        <Tabs value={this.getSelectedTab()} onChange={(e, index) => this.selectTab(index, index)} variant="scrollable">
+                            {this.state.interfaces.map((interfaceItem, i) => <Tab
+                                key={i}
+                                label={<div className={this.props.classes.tabContainer}>
+                                    {interfaceItem.type === 'wired' ? <SettingsInputComponentIcon /> : <WifiIcon />}
+                                    {interfaceItem.iface}
+                                </div>}
+                            />)}
+                        </Tabs>
+                    </AppBar>
 
-                <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>
-                    {this.renderInterface(this.state.interfacesChanged[this.getSelectedTab()], this.getSelectedTab())}
-                    {this.renderDns()}
-                </div>
-                {this.renderRootDialog()}
-                {this.renderWifiDialog()}
+                    <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>
+
+                        {this.renderInterface(this.state.interfacesChanged[this.getSelectedTab()], this.getSelectedTab())}
+
+                    </div>
+                    {this.renderRootDialog()}
+                    {this.renderWifiDialog()}
+                </Container>
             </div>
         </MuiThemeProvider>;
     }
