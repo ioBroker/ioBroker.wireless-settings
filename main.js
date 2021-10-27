@@ -7,6 +7,7 @@ const network = require('network');
 const wifi = require('node-wifi');
 const networkInterfaces = require('os').networkInterfaces;
 const dns       = require('dns');
+const fs       = require('fs');
 const Iconv = require('iconv').Iconv;
 const si = require('systeminformation');
 const si2 = require('@jedithepro/system-info');
@@ -43,7 +44,7 @@ const triggers = {
                     if (!result.find(interfaceItem => interfaceItem.iface === consoleInterface.iface)) {
                         result.push(consoleInterface);
                     }
-                })
+                });
                 response(result);
             }
         });
@@ -83,7 +84,7 @@ const triggers = {
                 response({result: true});
             });
         } else {
-            let ssid = childProcess.execSync('iwgetid -r').toString().trim();
+            const ssid = childProcess.execSync('iwgetid -r').toString().trim();
             childProcess.execSync(`nmcli c down '${ssid}'`);
             response({result: true});
         }
@@ -127,7 +128,62 @@ function startAdapter(options) {
     }));
 }
 
+function getInterfaces(filename) {
+    const text = fs.readFileSync(filename).toString();
+    const lines = text.split(/\r?\n/);
+    const result = [];
+    let currentInterface = null;
+    for (const i in lines) {
+        let line = lines[i];
+        line = line.trim();
+        if (line.startsWith('#')) {
+            continue;
+        }
+        const matches = line.match(/^([a-z0-9\-_]+)\s+(.*)$/);
+        if (matches) {
+            const record = {};
+            record[matches[1]] = matches[2];
+            if (matches[1] === 'auto') {
+                currentInterface = null;
+            }
+            if (matches[1] === 'iface') {
+                currentInterface = [];
+                result.push(currentInterface);
+            }
+            if (currentInterface) {
+                currentInterface.push(record);
+            } else {
+                result.push(record);
+            }
+        }
+    }
+    return result;
+}
+
+function setInterfaces(filename, data) {
+    let result = '';
+    for (const i in data) {
+        const record = data[i];
+        if (Array.isArray(record)) {
+            for (const key in record) {
+                const ifaceRecord = record[key];
+                if (Object.keys(ifaceRecord)[0] !== 'iface') {
+                    result += '    ';
+                }
+                result += `${Object.keys(ifaceRecord)[0]} ${Object.values(ifaceRecord)[0]}\n`;
+            }
+        } else {
+            result += `${Object.keys(record)[0]} ${Object.values(record)[0]}\n`;
+        }
+    }
+    console.log(result);
+}
+
 async function main() {
+    // const config = getInterfaces(__dirname + '/interfaces.example.txt');
+    // console.log(config);
+    // setInterfaces(__dirname + '/interfaces.example.output.txt', config);
+
     // console.log(networkInterfaces());
     // si.networkInterfaces(console.log);
     // si2.networkInterfaces(console.log);
