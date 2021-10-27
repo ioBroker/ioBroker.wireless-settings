@@ -23,8 +23,10 @@
     "network": "^0.6.0",
     "network-config": "^3.0.0",
     "node-wifi": "^2.0.15",
+    "shell-exec": "^1.0.2",
     "sudo": "^1.0.3",
-    "systeminformation": "^5.9.4"
+    "systeminformation": "^5.9.4",
+    "wpa_supplicant": "^1.0.2"
   },
   "devDependencies": {
     "@iobroker/testing": "^2.4.0",

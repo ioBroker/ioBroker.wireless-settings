@@ -20,6 +20,11 @@ const childProcess = require('child_process');
  */
 let adapter;
 
+const sudo = (command, password) => {
+    // return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
+    return childProcess.execSync(command).toString().trim();
+}
+
 
 const triggers = {
     interfaces: (input, response) => {
@@ -96,7 +101,29 @@ const triggers = {
             }
         } else {
             console.log(input);
-            childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} ${input.data.ip4} netmask ${input.data.ip4subnet}`).toString().trim();
+
+            const newConfig = [
+                { 'allow-hotplug': '' },
+                { auto: 'wlan0' },
+                [
+                  { iface: input.data.iface + ' inet static' },
+                  { address: input.data.ip4 },
+                  { netmask: input.data.ip4subnet },
+                  { gateway: '192.168.100.1' },
+                  { 'dns-nameservers': '8.8.8.8 8.8.4.4' },
+                  { 'dns-search': 'foo' },
+                  { 'wpa-conf': '/etc/wpa_supplicant/wpa_supplicant.conf' }
+                ]
+              ];
+              setInterfaces('/etc/network/interfaces.d/iobroker', newConfig, input.rootPassword);
+            //   sudo('service dhcpcd stop');
+            //   sudo('ifdown ' + input.data.iface);
+            //   sudo('ifup ' + input.data.iface);
+            //   sudo('sleep 2');
+            //   sudo('ifdown ' + input.data.iface);
+            //   sudo('ifup ' + input.data.iface);
+            
+            // childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} ${input.data.ip4} netmask ${input.data.ip4subnet}`).toString().trim();
             // childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} down`).toString().trim();
             // childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} up`).toString().trim();
         }
@@ -139,10 +166,10 @@ function getInterfaces(filename) {
         if (line.startsWith('#')) {
             continue;
         }
-        const matches = line.match(/^([a-z0-9\-_]+)\s+(.*)$/);
+        const matches = line.match(/^([a-z0-9\-_]+)(\s+(.*))?$/);
         if (matches) {
             const record = {};
-            record[matches[1]] = matches[2];
+            record[matches[1]] = matches[3] !== undefined ? matches[3] : '';
             if (matches[1] === 'auto') {
                 currentInterface = null;
             }
@@ -160,7 +187,7 @@ function getInterfaces(filename) {
     return result;
 }
 
-function setInterfaces(filename, data) {
+function setInterfaces(filename, data, password) {
     let result = '';
     for (const i in data) {
         const record = data[i];
@@ -176,13 +203,13 @@ function setInterfaces(filename, data) {
             result += `${Object.keys(record)[0]} ${Object.values(record)[0]}\n`;
         }
     }
-    console.log(result);
+    sudo(`sh -c 'echo "${result}" > ${filename}'`, password);
 }
 
 async function main() {
-    // const config = getInterfaces(__dirname + '/interfaces.example.txt');
-    // console.log(config);
-    // setInterfaces(__dirname + '/interfaces.example.output.txt', config);
+    const config = getInterfaces('/etc/network/interfaces.d/iobroker');
+    console.log(config);
+    //setInterfaces(__dirname + '/interfaces.example.output.txt', config);
 
     // console.log(networkInterfaces());
     // si.networkInterfaces(console.log);
