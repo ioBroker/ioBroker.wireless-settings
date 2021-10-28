@@ -14,6 +14,8 @@ const si2 = require('@jedithepro/system-info');
 const adapterName = require('./package.json').name.split('.').pop();
 const childProcess = require('child_process');
 
+const interfacesFile = '/etc/network/interfaces.d/iobroker';
+
 /**
  * The adapter instance
  * @type {ioBroker.Adapter}
@@ -21,10 +23,81 @@ const childProcess = require('child_process');
 let adapter;
 
 const sudo = (command, password) => {
-    // return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
-    return childProcess.execSync(command).toString().trim();
+    //return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
+    return childProcess.execSync(`sudo ${command}`).toString().trim();
+    // return childProcess.execSync(command).toString().trim();
+};
+
+
+
+
+function getInterfaces(filename) {
+    const text = fs.readFileSync(filename).toString();
+    const lines = text.split(/\r?\n/);
+    const result = [];
+    let currentInterface = null;
+    for (const i in lines) {
+        let line = lines[i];
+        line = line.trim();
+        if (line.startsWith('#')) {
+            continue;
+        }
+        const matches = line.match(/^([a-z0-9\-_]+)(\s+(.*))?$/);
+        if (matches) {
+            const record = {};
+            record[matches[1]] = matches[3] !== undefined ? matches[3] : '';
+            if (matches[1] === 'auto') {
+                currentInterface = null;
+            }
+            if (matches[1] === 'iface') {
+                currentInterface = [];
+                result.push(currentInterface);
+            }
+            if (currentInterface) {
+                currentInterface.push(record);
+            } else {
+                result.push(record);
+            }
+        }
+    }
+    return result;
 }
 
+function getInterface(iface) {
+    return getInterfaces(interfacesFile).find(interfaceItem =>
+        Array.isArray(interfaceItem) && interfaceItem.find(record => record.iface && record.iface.startsWith(iface))
+    );
+}
+
+function getInterfaceRecord(iface, name) {
+    const interfaceItem = getInterface(iface);
+    let record;
+    if (interfaceItem) {
+        record = getInterface(iface).find(record => record[name] !== undefined);
+    }
+    if (record) {
+        return record[name];
+    }
+}
+
+function setInterfaces(filename, data, password) {
+    let result = '';
+    for (const i in data) {
+        const record = data[i];
+        if (Array.isArray(record)) {
+            for (const key in record) {
+                const ifaceRecord = record[key];
+                if (Object.keys(ifaceRecord)[0] !== 'iface') {
+                    result += '    ';
+                }
+                result += `${Object.keys(ifaceRecord)[0]} ${Object.values(ifaceRecord)[0]}\n`;
+            }
+        } else {
+            result += `${Object.keys(record)[0]} ${Object.values(record)[0]}\n`;
+        }
+    }
+    childProcess.execSync(`echo "${result}" | sudo tee ${filename}`).toString().trim();
+}
 
 const triggers = {
     interfaces: (input, response) => {
@@ -49,6 +122,12 @@ const triggers = {
                     if (!result.find(interfaceItem => interfaceItem.iface === consoleInterface.iface)) {
                         result.push(consoleInterface);
                     }
+                });
+                result.forEach(interfaceItem => {
+                    interfaceItem.dns = getInterfaceRecord(interfaceItem.iface, 'dns-nameservers') ? getInterfaceRecord(interfaceItem.iface, 'dns-nameservers').split(/\s/) : [];
+                    interfaceItem.gateway = getInterfaceRecord(interfaceItem.iface, 'gateway') || '';
+                    interfaceItem.dhcp = getInterfaceRecord(interfaceItem.iface, 'iface') && getInterfaceRecord(interfaceItem.iface, 'iface').includes(' dhcp') || false;
+                    interfaceItem.type = interfaceItem.iface[0] === 'w' ? 'wireless' : 'wired';
                 });
                 response(result);
             }
@@ -102,30 +181,50 @@ const triggers = {
         } else {
             console.log(input);
 
-            const newConfig = [
-                { 'allow-hotplug': '' },
-                { auto: 'wlan0' },
+            const wireless = input.data.iface[0] === 'w';
+
+            const newConfig = input.data.dhcp ?
                 [
-                  { iface: input.data.iface + ' inet static' },
-                  { address: input.data.ip4 },
-                  { netmask: input.data.ip4subnet },
-                  { gateway: '192.168.100.1' },
-                  { 'dns-nameservers': '8.8.8.8 8.8.4.4' },
-                  { 'dns-search': 'foo' },
-                  { 'wpa-conf': '/etc/wpa_supplicant/wpa_supplicant.conf' }
+                    { 'allow-hotplug': input.data.iface },
+                    { auto: 'wlan0' },
+                    [
+                        { iface: input.data.iface + ' inet dhcp' },
+                    ]
                 ]
-              ];
-              setInterfaces('/etc/network/interfaces.d/iobroker', newConfig, input.rootPassword);
-            //   sudo('service dhcpcd stop');
-            //   sudo('ifdown ' + input.data.iface);
-            //   sudo('ifup ' + input.data.iface);
-            //   sudo('sleep 2');
-            //   sudo('ifdown ' + input.data.iface);
-            //   sudo('ifup ' + input.data.iface);
-            
-            // childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} ${input.data.ip4} netmask ${input.data.ip4subnet}`).toString().trim();
-            // childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} down`).toString().trim();
-            // childProcess.execSync(`echo ${input.rootPassword} | sudo -S ifconfig ${input.data.iface} up`).toString().trim();
+                : [
+                    { 'allow-hotplug': input.data.iface },
+                    { auto: input.data.iface },
+                    [
+                        { iface: input.data.iface + ' inet static' },
+                        { address: input.data.ip4 },
+                        { netmask: input.data.ip4subnet },
+                        { gateway: '192.168.100.1' },
+                        { 'dns-nameservers': input.data.dns.join(' ') },
+                        { 'dns-search': 'foo' },
+                    ]
+                ];
+            if (wireless) {
+                newConfig.push(
+                    { 'wpa-conf': '/etc/wpa_supplicant/wpa_supplicant.conf' }
+                );
+            }
+            let found = false;
+            const config = getInterfaces(interfacesFile);
+            for (const i in config) {
+                if (Array.isArray(config[i]) && config[i].find(record => record.iface && record.iface.startsWith(input.data.iface))) {
+                    found = i;
+                    break;
+                }
+            }
+            if (found !== false) {
+                config[found] = newConfig;
+            } else {
+                config.push(newConfig);
+            }
+            console.log(JSON.stringify(config, null, 4));
+            //setInterfaces(interfacesFile, newConfig, input.rootPassword);
+            //sudo('/etc/init.d/networking restart');
+            //sudo('service dhcpcd stop');
         }
         response(true);
     },
@@ -155,59 +254,8 @@ function startAdapter(options) {
     }));
 }
 
-function getInterfaces(filename) {
-    const text = fs.readFileSync(filename).toString();
-    const lines = text.split(/\r?\n/);
-    const result = [];
-    let currentInterface = null;
-    for (const i in lines) {
-        let line = lines[i];
-        line = line.trim();
-        if (line.startsWith('#')) {
-            continue;
-        }
-        const matches = line.match(/^([a-z0-9\-_]+)(\s+(.*))?$/);
-        if (matches) {
-            const record = {};
-            record[matches[1]] = matches[3] !== undefined ? matches[3] : '';
-            if (matches[1] === 'auto') {
-                currentInterface = null;
-            }
-            if (matches[1] === 'iface') {
-                currentInterface = [];
-                result.push(currentInterface);
-            }
-            if (currentInterface) {
-                currentInterface.push(record);
-            } else {
-                result.push(record);
-            }
-        }
-    }
-    return result;
-}
-
-function setInterfaces(filename, data, password) {
-    let result = '';
-    for (const i in data) {
-        const record = data[i];
-        if (Array.isArray(record)) {
-            for (const key in record) {
-                const ifaceRecord = record[key];
-                if (Object.keys(ifaceRecord)[0] !== 'iface') {
-                    result += '    ';
-                }
-                result += `${Object.keys(ifaceRecord)[0]} ${Object.values(ifaceRecord)[0]}\n`;
-            }
-        } else {
-            result += `${Object.keys(record)[0]} ${Object.values(record)[0]}\n`;
-        }
-    }
-    sudo(`sh -c 'echo "${result}" > ${filename}'`, password);
-}
-
 async function main() {
-    const config = getInterfaces('/etc/network/interfaces.d/iobroker');
+    const config = getInterfaces(interfacesFile);
     console.log(config);
     //setInterfaces(__dirname + '/interfaces.example.output.txt', config);
 

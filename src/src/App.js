@@ -11,7 +11,7 @@ import WifiIcon from '@material-ui/icons/Wifi';
 import SignalWifi4BarIcon from '@material-ui/icons/SignalWifi4Bar';
 import SignalWifi4BarLockIcon from '@material-ui/icons/SignalWifi4BarLock';
 import {
-    Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel, Grid, Container,
+    Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel, Grid, Container, IconButton,
 } from '@material-ui/core';
 import { withSnackbar } from 'notistack';
 
@@ -111,6 +111,24 @@ class App extends GenericApp {
     setInterfaceParam = (index, param, value) => {
         const interfaces = JSON.parse(JSON.stringify(this.state.interfacesChanged));
         interfaces[index][param] = value;
+        this.setState({ interfacesChanged: interfaces });
+    }
+
+    setDns = (interfaceIndex, dnsIndex, value) => {
+        const interfaces = JSON.parse(JSON.stringify(this.state.interfacesChanged));
+        interfaces[interfaceIndex].dns[dnsIndex] = value;
+        this.setState({ interfacesChanged: interfaces });
+    }
+
+    addDns = interfaceIndex => {
+        const interfaces = JSON.parse(JSON.stringify(this.state.interfacesChanged));
+        interfaces[interfaceIndex].dns.push('');
+        this.setState({ interfacesChanged: interfaces });
+    }
+
+    removeDns = (interfaceIndex, dnsIndex) => {
+        const interfaces = JSON.parse(JSON.stringify(this.state.interfacesChanged));
+        interfaces[interfaceIndex].dns.splice(dnsIndex, 1);
         this.setState({ interfacesChanged: interfaces });
     }
 
@@ -262,6 +280,7 @@ class App extends GenericApp {
                         />
                     </div>
                     <>
+                        <h4>IPv4</h4>
                         <div>
                             <TextField value={interfaceItem.ip4} label={I18n.t('IPv4')} onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)} disabled={interfaceItem.dhcp} />
                         </div>
@@ -269,12 +288,28 @@ class App extends GenericApp {
                             <TextField value={interfaceItem.ip4subnet} label={I18n.t('IPv4 netmask')} onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)} disabled={interfaceItem.dhcp} />
                         </div>
                         <div>
+                            <TextField value={interfaceItem.gateway} label={I18n.t('Gateway')} onChange={e => this.setInterfaceParam(i, 'gateway', e.target.value)} disabled={interfaceItem.dhcp} />
+                        </div>
+                        <h4>IPv6</h4>
+                        <div>
                             <TextField value={interfaceItem.ip6} label={I18n.t('IPv6')} onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)} disabled={interfaceItem.dhcp} />
                         </div>
                         <div>
                             <TextField value={interfaceItem.ip6subnet} label={I18n.t('IPv6 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} disabled={interfaceItem.dhcp} />
                         </div>
+                        <h4>DNS</h4>
                     </>
+                    {
+                        interfaceItem.dns.map((dnsRecord, dnsI) => <div key={dnsI}>
+                            <TextField
+                                value={dnsRecord}
+                                label={I18n.t('DNS record')}
+                                onChange={e => this.setDns(i, dnsI, e.target.value)}
+                            />
+                            {interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>-</IconButton> : null}
+                        </div>)
+                    }
+                    <div><IconButton onClick={() => this.addDns(i)}>+</IconButton></div>
                     <div>
                         <Button
                             variant="contained"
@@ -287,7 +322,6 @@ class App extends GenericApp {
                             {I18n.t('Save')}
                         </Button>
                     </div>
-                    {this.renderDns()}
                 </Grid>
                 {interfaceItem.type === 'wired'
                     ? null

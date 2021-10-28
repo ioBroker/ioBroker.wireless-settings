@@ -1,0 +1,8 @@
+{
+    "wlan0": {
+        "dhcp": true
+    },
+    "eth0": {
+        "dhcp": true
+    }
+}
