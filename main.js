@@ -1,18 +1,15 @@
 'use strict';
 
 const utils       = require('@iobroker/adapter-core');
-const axios       = require('axios');
-const crypto      = require('crypto');
-const network = require('network');
 const wifi = require('node-wifi');
 const networkInterfaces = require('os').networkInterfaces;
 const dns       = require('dns');
 const fs       = require('fs');
-const Iconv = require('iconv').Iconv;
 const si = require('systeminformation');
-const si2 = require('@jedithepro/system-info');
 const adapterName = require('./package.json').name.split('.').pop();
 const childProcess = require('child_process');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
 const configFile = __dirname + '/data/network.json';
 const configTemplateFile = __dirname + '/data/network.template.json';
@@ -25,8 +22,8 @@ const interfacesFile = '/etc/network/interfaces.d/iobroker';
 let adapter;
 
 const sudo = (command, password) => {
-    //return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
     return childProcess.execSync(`sudo ${command}`).toString().trim();
+    //return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
     // return childProcess.execSync(command).toString().trim();
 };
 
@@ -54,9 +51,17 @@ const wifiConnect = (ssid, password) => {
     config.wlan0.wifiPassword = password ? true : false;
     setConfig(config);
     if (password) {
-        sudo(`wpa_passphrase ${argumentEscape(ssid)} ${argumentEscape(password)} > /etc/wpa_supplicant/wpa_supplicant.conf`);
+        childProcess.execSync(`sudo wpa_passphrase ${argumentEscape(ssid)} ${argumentEscape(password)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    } else {
+        const wpaSupplicant = `
+network={
+    ssid="${ssid}"
+    key_mgmt=NONE
+}
+`;
+        childProcess.execSync(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
     }
-    writeInterfaces();
+    writeInterfaces(true);
 };
 
 const wifiDisconnect = () => {
@@ -64,10 +69,11 @@ const wifiDisconnect = () => {
     delete config.wlan0.wifi;
     delete config.wlan0.wifiPassword;
     setConfig(config);
-    writeInterfaces();
+    childProcess.execSync(`echo '' | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    writeInterfaces(true);
 };
 
-const writeInterfaces = () => {
+const writeInterfaces = (wifiOnly) => {
     const config = getConfig();
     let interfaces = `
 #auto lo
@@ -78,7 +84,7 @@ const writeInterfaces = () => {
 #auto eth0
 allow-hotplug eth0
 iface eth0 inet dhcp
-dns-nameservers 8.8.8.8 8.8.4.4
+#dns-nameservers 8.8.8.8 8.8.4.4
 ` : `
 #auto eth0
 allow-hotplug eth0
@@ -89,12 +95,14 @@ gateway ${config['eth0'].ip4gateway}
 dns-nameservers ${config['eth0'].dns.join(' ')}
 `;
 
+    const wifiString = config.wlan0.wifi || true ? 'wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf' : '';
+
     interfaces += config['wlan0'].dhcp ? `
 auto wlan0
 allow-hotplug wlan0
 iface wlan0 inet dhcp
-dns-nameservers 8.8.8.8 8.8.4.4
-wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+#dns-nameservers 8.8.8.8 8.8.4.4
+${wifiString}
 ` : `
 auto wlan0
 allow-hotplug wlan0
@@ -103,15 +111,23 @@ address ${config['wlan0'].ip4}
 netmask ${config['wlan0'].ip4subnet}
 gateway ${config['wlan0'].ip4gateway}
 dns-nameservers ${config['wlan0'].dns.join(' ')}
-wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+${wifiString}
 `;
     console.log(interfaces);
     childProcess.execSync(`echo ${argumentEscape(interfaces)} | sudo tee ${interfacesFile}`).toString().trim();
+
+    if (false && wifiOnly) {
+        sudo('ifdown wlan0');
+        sudo('ifup wlan0');
+    } else {
+        sudo('service networking restart');
+    }
+    //sudo('service dhcpcd stop');
 };
 
-const getWiFi = () => {
+const getWiFi = async () => {
     const networks = [];
-    const iwlist = sudo('iwlist scan');
+    const iwlist = (await exec('sudo iwlist scan')).stdout;
     let currentNetwork = null;
     iwlist.split('\n').forEach(line => {
         line = line.trim();
@@ -138,7 +154,12 @@ const getWiFi = () => {
 };
 
 const getWiFiConnections = () => {
-    const ssid = childProcess.execSync('iwgetid -r').toString().trim();
+    let ssid = null;
+    try {
+        ssid = childProcess.execSync('iwgetid -r').toString().trim();
+    } catch {
+
+    }
     return ssid ? [{ssid: ssid}] : [];
 };
 
@@ -182,11 +203,11 @@ const triggers = {
             }
         });
     },
-    wifi: (input, response) => {
+    wifi: async (input, response) => {
         if (process.platform === 'win32') {
             si.wifiNetworks(response);
         } else {
-            response(getWiFi());
+            response(await getWiFi());
         }
     },
     dns: (input, response) => {
@@ -203,15 +224,20 @@ const triggers = {
         }
     },
     wifiConnect: (input, response) => {
-        wifi.init({
-            iface: null
-        });
-        wifi.connect({ ssid: input.ssid, password: input.password }, error => {
-            if (error) {
-                response({result: false, error: error});
-            }
-            response({result: true});
-        });
+        if (process.platform === 'win32') {
+            wifi.init({
+                iface: null
+            });
+            wifi.connect({ ssid: input.ssid, password: input.password }, error => {
+                if (error) {
+                    response({result: false, error: error});
+                }
+                response({result: true});
+            });
+        } else {
+            wifiConnect(input.ssid, input.password);
+            response({result: childProcess.execSync('iwgetid -r').toString().trim() === 'input.ssid'});
+        }
     },
     wifiDisconnect: (input, response) => {
         if (process.platform === 'win32') {
@@ -225,8 +251,7 @@ const triggers = {
                 response({result: true});
             });
         } else {
-            const ssid = childProcess.execSync('iwgetid -r').toString().trim();
-            childProcess.execSync(`nmcli c down '${ssid}'`);
+            wifiDisconnect();
             response({result: true});
         }
     },
@@ -251,9 +276,6 @@ const triggers = {
                 };
             setConfig(config);
             writeInterfaces();
-            sudo('service networking restart');
-            // sudo('ifup ' + input.data.iface);
-            //sudo('service dhcpcd stop');
         }
         response(true);
     },
@@ -284,13 +306,6 @@ function startAdapter(options) {
 }
 
 async function main() {
-    //setInterfaces(__dirname + '/interfaces.example.output.txt', config);
-
-    // console.log(networkInterfaces());
-    // si.networkInterfaces(console.log);
-    // si2.networkInterfaces(console.log);
-
-    //console.log(childProcess.execSync('ip a | grep -P \'^[0-9]+:\'').toString().trim())
     console.log(getWiFi());
 }
 
