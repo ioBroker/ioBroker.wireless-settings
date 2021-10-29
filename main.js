@@ -21,8 +21,8 @@ const interfacesFile = '/etc/network/interfaces.d/iobroker';
  */
 let adapter;
 
-const sudo = (command, password) => {
-    return childProcess.execSync(`sudo ${command}`).toString().trim();
+const sudo = async (command, password) => {
+    return (await exec(`sudo ${command}`)).stdout.trim();
     //return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
     // return childProcess.execSync(command).toString().trim();
 };
@@ -45,13 +45,13 @@ const setConfig = (config) => {
     fs.writeFileSync(configFile, JSON.stringify(config, null, 4));
 };
 
-const wifiConnect = (ssid, password) => {
+const wifiConnect = async (ssid, password) => {
     const config = getConfig();
     config.wlan0.wifi = ssid;
     config.wlan0.wifiPassword = password ? true : false;
     setConfig(config);
     if (password) {
-        childProcess.execSync(`sudo wpa_passphrase ${argumentEscape(ssid)} ${argumentEscape(password)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        await exec(`sudo wpa_passphrase ${argumentEscape(ssid)} ${argumentEscape(password)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
     } else {
         const wpaSupplicant = `
 network={
@@ -59,21 +59,21 @@ network={
     key_mgmt=NONE
 }
 `;
-        childProcess.execSync(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
     }
-    writeInterfaces(true);
+    await writeInterfaces(true);
 };
 
-const wifiDisconnect = () => {
+const wifiDisconnect = async () => {
     const config = getConfig();
     delete config.wlan0.wifi;
     delete config.wlan0.wifiPassword;
     setConfig(config);
-    childProcess.execSync(`echo '' | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
-    writeInterfaces(true);
+    await exec(`echo '' | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    await writeInterfaces(true);
 };
 
-const writeInterfaces = (wifiOnly) => {
+const writeInterfaces = async (wifiOnly) => {
     const config = getConfig();
     let interfaces = `
 #auto lo
@@ -114,15 +114,15 @@ dns-nameservers ${config['wlan0'].dns.join(' ')}
 ${wifiString}
 `;
     console.log(interfaces);
-    childProcess.execSync(`echo ${argumentEscape(interfaces)} | sudo tee ${interfacesFile}`).toString().trim();
+    await exec(`echo ${argumentEscape(interfaces)} | sudo tee ${interfacesFile}`);
 
     if (false && wifiOnly) {
-        sudo('ifdown wlan0');
-        sudo('ifup wlan0');
+        await sudo('ifdown wlan0');
+        await sudo('ifup wlan0');
     } else {
-        sudo('service networking restart');
+        await sudo('service networking restart');
     }
-    //sudo('service dhcpcd stop');
+    await sudo('service dhcpcd stop');
 };
 
 const getWiFi = async () => {
@@ -153,19 +153,19 @@ const getWiFi = async () => {
     return networks;
 };
 
-const getWiFiConnections = () => {
+const getWiFiConnections = async () => {
     let ssid = null;
     try {
-        ssid = childProcess.execSync('iwgetid -r').toString().trim();
-    } catch {
+        ssid = (await exec('iwgetid -r')).stdout.trim();
+    } catch (e) {
 
     }
     return ssid ? [{ssid: ssid}] : [];
 };
 
 const triggers = {
-    interfaces: (input, response) => {
-        si.networkInterfaces(result => {
+    interfaces: async (input, response) => {
+        si.networkInterfaces(async result => {
             if (process.platform === 'win32') {
                 const nativeInterfaces = networkInterfaces();
                 response(result.map(interfaceItem => {
@@ -173,7 +173,7 @@ const triggers = {
                     return interfaceItem;
                 }));
             } else {
-                const consoleInterfaces = childProcess.execSync('ip a | grep -P \'^[0-9]+:\'').toString().trim().
+                const consoleInterfaces = (await exec('ip a | grep -P \'^[0-9]+:\'')).stdout.trim().
                     split('\n').map(consoleInterface => ({
                         iface: consoleInterface.match(/^[0-9]+: (.*?):/)[1],
                         ip4: '',
@@ -216,14 +216,14 @@ const triggers = {
     changeDns: (input, response) => {
         console.log(input.data);
     },
-    wifiConnections: (input, response) => {
+    wifiConnections: async (input, response) => {
         if (process.platform === 'win32') {
             si.wifiConnections(response);
         } else {
-            response(getWiFiConnections());
+            response(await getWiFiConnections());
         }
     },
-    wifiConnect: (input, response) => {
+    wifiConnect: async (input, response) => {
         if (process.platform === 'win32') {
             wifi.init({
                 iface: null
@@ -235,16 +235,16 @@ const triggers = {
                 response({result: true});
             });
         } else {
-            wifiConnect(input.ssid, input.password);
-            response({result: childProcess.execSync('iwgetid -r').toString().trim() === 'input.ssid'});
+            await wifiConnect(input.ssid, input.password);
+            response({result: (await exec('iwgetid -r')).stdout.trim() === 'input.ssid'});
         }
     },
-    wifiDisconnect: (input, response) => {
+    wifiDisconnect: async (input, response) => {
         if (process.platform === 'win32') {
             wifi.init({
                 iface: null
             });
-            wifi.disconnect(error => {
+            await wifi.disconnect(error => {
                 if (error) {
                     response({result: false, error: error});
                 }
@@ -255,7 +255,7 @@ const triggers = {
             response({result: true});
         }
     },
-    changeInterface: (input, response) => {
+    changeInterface: async (input, response) => {
         if (process.platform === 'win32') {
             if (input.rootPassword !== 'test') {
                 response(false);
@@ -275,7 +275,7 @@ const triggers = {
                     dns: input.data.dns,
                 };
             setConfig(config);
-            writeInterfaces();
+            await writeInterfaces();
         }
         response(true);
     },

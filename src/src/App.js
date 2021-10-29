@@ -82,6 +82,16 @@ class App extends GenericApp {
 
     onConnectionReady() {
         this.refresh();
+        setInterval(() => {
+            this.socket.sendTo('network.0', 'wifi', null).then(result => {
+                if (result.length) {
+                    this.setState({ wifi: result });
+                }
+            });
+            this.socket.sendTo('network.0', 'wifiConnections', null).then(result => {
+                this.setState({ wifiConnections: result });
+            });
+        }, 10000);
     }
 
     refresh() {
@@ -150,6 +160,10 @@ class App extends GenericApp {
                 this.props.enqueueSnackbar(I18n.t('Interface not updated'), { variant: 'error' });
             }
         });
+
+        if (window.location.hostname === this.state.interfaces[index].ip4 && this.state.interfacesChanged[index].ip4 !== this.state.interfaces[index].ip4) {
+            window.location.href = `http://${this.state.interfacesChanged[index].ip4}:${window.location.port}`;
+        }
     }
 
     connect = (ssid, password) => {
