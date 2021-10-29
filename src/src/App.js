@@ -10,6 +10,8 @@ import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponen
 import WifiIcon from '@material-ui/icons/Wifi';
 import SignalWifi4BarIcon from '@material-ui/icons/SignalWifi4Bar';
 import SignalWifi4BarLockIcon from '@material-ui/icons/SignalWifi4BarLock';
+import AddIcon from '@material-ui/icons/Add';
+import DeleteIcon from '@material-ui/icons/Delete';
 import {
     Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel, Grid, Container, IconButton,
 } from '@material-ui/core';
@@ -306,18 +308,22 @@ class App extends GenericApp {
                                 label={I18n.t('DNS record')}
                                 onChange={e => this.setDns(i, dnsI, e.target.value)}
                             />
-                            {interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>-</IconButton> : null}
+                            {interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>
+                                <DeleteIcon />
+                            </IconButton> : null}
                         </div>)
                     }
-                    <div><IconButton onClick={() => this.addDns(i)}>+</IconButton></div>
+                    <div>
+                        <IconButton onClick={() => this.addDns(i)}>
+                            <AddIcon />
+                        </IconButton>
+                    </div>
                     <div>
                         <Button
                             variant="contained"
                             color="primary"
                             disabled={buttonDisabled}
-                            onClick={() => this.setState({
-                                sudoDialog: i,
-                            })}
+                            onClick={() => this.sendData(i, '')}
                         >
                             {I18n.t('Save')}
                         </Button>
@@ -336,31 +342,6 @@ class App extends GenericApp {
         </>;
     }
 
-    renderDns() {
-        return <>
-            {
-                this.state.dns.map((dnsRecord, i) => <div key={i}>
-                    <TextField
-                        value={dnsRecord}
-                        label={I18n.t('DNS record')}
-                        onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)}
-                    />
-                </div>)
-            }
-            <div>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => this.setState({
-                        sudoDialog: '',
-                    })}
-                >
-                    {I18n.t('Save')}
-                </Button>
-            </div>
-        </>;
-    }
-
     renderWifi() {
         return this.state.wifi.map((wifi, i) => {
             const connected = this.state.wifiConnections.length && wifi.ssid === this.state.wifiConnections[0].ssid;
@@ -368,6 +349,7 @@ class App extends GenericApp {
                 <Button
                     variant={connected ? 'contained' : undefined}
                     color={connected ? 'primary' : undefined}
+                    disabled={connected}
                     onClick={() => {
                         if (wifi.security.includes('Open')) {
                             this.connect(wifi.ssid, '');

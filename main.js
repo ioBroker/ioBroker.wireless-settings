@@ -14,6 +14,8 @@ const si2 = require('@jedithepro/system-info');
 const adapterName = require('./package.json').name.split('.').pop();
 const childProcess = require('child_process');
 
+const configFile = __dirname + '/data/network.json';
+const configTemplateFile = __dirname + '/data/network.template.json';
 const interfacesFile = '/etc/network/interfaces.d/iobroker';
 
 /**
@@ -28,76 +30,117 @@ const sudo = (command, password) => {
     // return childProcess.execSync(command).toString().trim();
 };
 
+const argumentEscape = (argument) => {
+    return '\'' + argument.replace(/'/, /\\'/g) + '\'';
+};
 
+const getConfig = () => {
+    if (!fs.existsSync(configFile)) {
+        fs.copyFileSync(configTemplateFile, configFile);
+    }
+    return JSON.parse(fs.readFileSync(configFile).toString());
+};
 
+const setConfig = (config) => {
+    if (!fs.existsSync(configFile)) {
+        fs.copyFileSync(configTemplateFile, configFile);
+    }
+    fs.writeFileSync(configFile, JSON.stringify(config, null, 4));
+};
 
-function getInterfaces(filename) {
-    const text = fs.readFileSync(filename).toString();
-    const lines = text.split(/\r?\n/);
-    const result = [];
-    let currentInterface = null;
-    for (const i in lines) {
-        let line = lines[i];
+const wifiConnect = (ssid, password) => {
+    const config = getConfig();
+    config.wlan0.wifi = ssid;
+    config.wlan0.wifiPassword = password ? true : false;
+    setConfig(config);
+    if (password) {
+        sudo(`wpa_passphrase ${argumentEscape(ssid)} ${argumentEscape(password)} > /etc/wpa_supplicant/wpa_supplicant.conf`);
+    }
+    writeInterfaces();
+};
+
+const wifiDisconnect = () => {
+    const config = getConfig();
+    delete config.wlan0.wifi;
+    delete config.wlan0.wifiPassword;
+    setConfig(config);
+    writeInterfaces();
+};
+
+const writeInterfaces = () => {
+    const config = getConfig();
+    let interfaces = `
+#auto lo
+#iface lo inet loopback
+`;
+
+    interfaces += config['eth0'].dhcp ? `
+#auto eth0
+allow-hotplug eth0
+iface eth0 inet dhcp
+dns-nameservers 8.8.8.8 8.8.4.4
+` : `
+#auto eth0
+allow-hotplug eth0
+iface eth0 inet static
+address ${config['eth0'].ip4}
+netmask ${config['eth0'].ip4subnet}
+gateway ${config['eth0'].ip4gateway}
+dns-nameservers ${config['eth0'].dns.join(' ')}
+`;
+
+    interfaces += config['wlan0'].dhcp ? `
+auto wlan0
+allow-hotplug wlan0
+iface wlan0 inet dhcp
+dns-nameservers 8.8.8.8 8.8.4.4
+wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+` : `
+auto wlan0
+allow-hotplug wlan0
+iface wlan0 inet static
+address ${config['wlan0'].ip4}
+netmask ${config['wlan0'].ip4subnet}
+gateway ${config['wlan0'].ip4gateway}
+dns-nameservers ${config['wlan0'].dns.join(' ')}
+wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf
+`;
+    console.log(interfaces);
+    childProcess.execSync(`echo ${argumentEscape(interfaces)} | sudo tee ${interfacesFile}`).toString().trim();
+};
+
+const getWiFi = () => {
+    const networks = [];
+    const iwlist = sudo('iwlist scan');
+    let currentNetwork = null;
+    iwlist.split('\n').forEach(line => {
         line = line.trim();
-        if (line.startsWith('#')) {
-            continue;
+        if (line.startsWith('Cell')) {
+            currentNetwork = {security: []};
+            networks.push(currentNetwork);
         }
-        const matches = line.match(/^([a-z0-9\-_]+)(\s+(.*))?$/);
-        if (matches) {
-            const record = {};
-            record[matches[1]] = matches[3] !== undefined ? matches[3] : '';
-            if (matches[1] === 'auto') {
-                currentInterface = null;
-            }
-            if (matches[1] === 'iface') {
-                currentInterface = [];
-                result.push(currentInterface);
-            }
-            if (currentInterface) {
-                currentInterface.push(record);
-            } else {
-                result.push(record);
-            }
+        let matches;
+        if (matches = line.match(/^ESSID:"(.*)"/)) {
+            currentNetwork.ssid = matches[1];
         }
-    }
-    return result;
-}
-
-function getInterface(iface) {
-    return getInterfaces(interfacesFile).find(interfaceItem =>
-        Array.isArray(interfaceItem) && interfaceItem.find(record => record.iface && record.iface.startsWith(iface))
-    );
-}
-
-function getInterfaceRecord(iface, name) {
-    const interfaceItem = getInterface(iface);
-    let record;
-    if (interfaceItem) {
-        record = getInterface(iface).find(record => record[name] !== undefined);
-    }
-    if (record) {
-        return record[name];
-    }
-}
-
-function setInterfaces(filename, data, password) {
-    let result = '';
-    for (const i in data) {
-        const record = data[i];
-        if (Array.isArray(record)) {
-            for (const key in record) {
-                const ifaceRecord = record[key];
-                if (Object.keys(ifaceRecord)[0] !== 'iface') {
-                    result += '    ';
-                }
-                result += `${Object.keys(ifaceRecord)[0]} ${Object.values(ifaceRecord)[0]}\n`;
-            }
-        } else {
-            result += `${Object.keys(record)[0]} ${Object.values(record)[0]}\n`;
+        if (matches = line.match(/Encryption key:off/)) {
+            currentNetwork.security.push('Open');
         }
-    }
-    childProcess.execSync(`echo "${result}" | sudo tee ${filename}`).toString().trim();
-}
+        if (matches = line.match(/IE: WPA Version 1/)) {
+            currentNetwork.security.push('WPA');
+        }
+        if (matches = line.match(/IEEE 802\.11i\/WPA2 Version 1/)) {
+            currentNetwork.security.push('WPA2');
+        }
+    });
+
+    return networks;
+};
+
+const getWiFiConnections = () => {
+    const ssid = childProcess.execSync('iwgetid -r').toString().trim();
+    return ssid ? [{ssid: ssid}] : [];
+};
 
 const triggers = {
     interfaces: (input, response) => {
@@ -123,18 +166,28 @@ const triggers = {
                         result.push(consoleInterface);
                     }
                 });
+                const config = getConfig();
                 result.forEach(interfaceItem => {
-                    interfaceItem.dns = getInterfaceRecord(interfaceItem.iface, 'dns-nameservers') ? getInterfaceRecord(interfaceItem.iface, 'dns-nameservers').split(/\s/) : [];
-                    interfaceItem.gateway = getInterfaceRecord(interfaceItem.iface, 'gateway') || '';
-                    interfaceItem.dhcp = getInterfaceRecord(interfaceItem.iface, 'iface') && getInterfaceRecord(interfaceItem.iface, 'iface').includes(' dhcp') || false;
-                    interfaceItem.type = interfaceItem.iface[0] === 'w' ? 'wireless' : 'wired';
+                    if (config[interfaceItem.iface]) {
+                        interfaceItem.dhcp = config[interfaceItem.iface].dhcp;
+                        interfaceItem.dns = config[interfaceItem.iface].dns || [''];
+                        interfaceItem.ip4 = config[interfaceItem.iface].ip4 || '';
+                        interfaceItem.ip4subnet = config[interfaceItem.iface].ip4subnet || '';
+                        interfaceItem.gateway = config[interfaceItem.iface].ip4gateway || '';
+                        interfaceItem.type = interfaceItem.iface[0] === 'w' ? 'wireless' : 'wired';
+                    }
                 });
+                console.log(result);
                 response(result);
             }
         });
     },
     wifi: (input, response) => {
-        si.wifiNetworks(response);
+        if (process.platform === 'win32') {
+            si.wifiNetworks(response);
+        } else {
+            response(getWiFi());
+        }
     },
     dns: (input, response) => {
         response(dns.getServers());
@@ -143,7 +196,11 @@ const triggers = {
         console.log(input.data);
     },
     wifiConnections: (input, response) => {
-        si.wifiConnections(response);
+        if (process.platform === 'win32') {
+            si.wifiConnections(response);
+        } else {
+            response(getWiFiConnections());
+        }
     },
     wifiConnect: (input, response) => {
         wifi.init({
@@ -181,49 +238,21 @@ const triggers = {
         } else {
             console.log(input);
 
-            const wireless = input.data.iface[0] === 'w';
+            const config = getConfig();
 
-            const newConfig = input.data.dhcp ?
-                [
-                    { 'allow-hotplug': input.data.iface },
-                    { auto: 'wlan0' },
-                    [
-                        { iface: input.data.iface + ' inet dhcp' },
-                    ]
-                ]
-                : [
-                    { 'allow-hotplug': input.data.iface },
-                    { auto: input.data.iface },
-                    [
-                        { iface: input.data.iface + ' inet static' },
-                        { address: input.data.ip4 },
-                        { netmask: input.data.ip4subnet },
-                        { gateway: '192.168.100.1' },
-                        { 'dns-nameservers': input.data.dns.join(' ') },
-                        { 'dns-search': 'foo' },
-                    ]
-                ];
-            if (wireless) {
-                newConfig.push(
-                    { 'wpa-conf': '/etc/wpa_supplicant/wpa_supplicant.conf' }
-                );
-            }
-            let found = false;
-            const config = getInterfaces(interfacesFile);
-            for (const i in config) {
-                if (Array.isArray(config[i]) && config[i].find(record => record.iface && record.iface.startsWith(input.data.iface))) {
-                    found = i;
-                    break;
-                }
-            }
-            if (found !== false) {
-                config[found] = newConfig;
-            } else {
-                config.push(newConfig);
-            }
-            console.log(JSON.stringify(config, null, 4));
-            //setInterfaces(interfacesFile, newConfig, input.rootPassword);
-            //sudo('/etc/init.d/networking restart');
+            config[input.data.iface] = input.data.dhcp ?
+                {dhcp: true}
+                : {
+                    dhcp: false,
+                    ip4: input.data.ip4,
+                    ip4subnet: input.data.ip4subnet,
+                    ip4gateway: input.data.gateway,
+                    dns: input.data.dns,
+                };
+            setConfig(config);
+            writeInterfaces();
+            sudo('service networking restart');
+            // sudo('ifup ' + input.data.iface);
             //sudo('service dhcpcd stop');
         }
         response(true);
@@ -255,8 +284,6 @@ function startAdapter(options) {
 }
 
 async function main() {
-    const config = getInterfaces(interfacesFile);
-    console.log(config);
     //setInterfaces(__dirname + '/interfaces.example.output.txt', config);
 
     // console.log(networkInterfaces());
@@ -264,6 +291,7 @@ async function main() {
     // si2.networkInterfaces(console.log);
 
     //console.log(childProcess.execSync('ip a | grep -P \'^[0-9]+:\'').toString().trim())
+    console.log(getWiFi());
 }
 
 // @ts-ignore parent is a valid property on module
