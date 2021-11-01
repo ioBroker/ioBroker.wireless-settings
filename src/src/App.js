@@ -91,7 +91,7 @@ class App extends GenericApp {
             this.socket.sendTo('network.0', 'wifiConnections', null).then(result => {
                 this.setState({ wifiConnections: result });
             });
-        }, 10000);
+        }, 4000);
     }
 
     refresh() {

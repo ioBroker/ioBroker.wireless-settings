@@ -5,6 +5,7 @@ const wifi = require('node-wifi');
 const networkInterfaces = require('os').networkInterfaces;
 const dns       = require('dns');
 const fs       = require('fs');
+const Netmask = require('netmask').Netmask
 const si = require('systeminformation');
 const adapterName = require('./package.json').name.split('.').pop();
 const childProcess = require('child_process');
@@ -13,7 +14,7 @@ const exec = util.promisify(require('child_process').exec);
 
 const configFile = __dirname + '/data/network.json';
 const configTemplateFile = __dirname + '/data/network.template.json';
-const interfacesFile = '/etc/network/interfaces.d/iobroker';
+const interfacesFile = '/etc/dhcpcd.conf';
 
 /**
  * The adapter instance
@@ -51,9 +52,25 @@ const wifiConnect = async (ssid, password) => {
     config.wlan0.wifiPassword = password ? true : false;
     setConfig(config);
     if (password) {
-        await exec(`sudo wpa_passphrase ${argumentEscape(ssid)} ${argumentEscape(password)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        const wpaSupplicant = `
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=RU
+
+network={
+    ssid="${ssid}"
+    psk="${password}"
+    key_mgmt=WPA-PSK
+}
+`;
+
+        await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
     } else {
         const wpaSupplicant = `
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=RU
+
 network={
     ssid="${ssid}"
     key_mgmt=NONE
@@ -61,6 +78,7 @@ network={
 `;
         await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
     }
+    // await sudo('service wpa_supplicant restart');
     await writeInterfaces(true);
 };
 
@@ -69,60 +87,50 @@ const wifiDisconnect = async () => {
     delete config.wlan0.wifi;
     delete config.wlan0.wifiPassword;
     setConfig(config);
-    await exec(`echo '' | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    const wpaSupplicant = `
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=RU
+    `;
+    await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    // await sudo('wpa_cli reconfigure');
     await writeInterfaces(true);
 };
 
 const writeInterfaces = async (wifiOnly) => {
     const config = getConfig();
     let interfaces = `
-#auto lo
-#iface lo inet loopback
+hostname
+clientid
+persistent
+option rapid_commit
+option domain_name_servers, domain_name, domain_search, host_name
+option classless_static_routes
+option interface_mtu
+require dhcp_server_identifier
+slaac private    
 `;
 
-    interfaces += config['eth0'].dhcp ? `
-#auto eth0
-allow-hotplug eth0
-iface eth0 inet dhcp
-#dns-nameservers 8.8.8.8 8.8.4.4
-` : `
-#auto eth0
-allow-hotplug eth0
-iface eth0 inet static
-address ${config['eth0'].ip4}
-netmask ${config['eth0'].ip4subnet}
-gateway ${config['eth0'].ip4gateway}
-dns-nameservers ${config['eth0'].dns.join(' ')}
-`;
+    Object.keys(config).forEach(iface => {
+        const ifaceConfig = config[iface];
+        interfaces += ifaceConfig.dhcp ? `
+        ` : `
+interface ${iface}
+static ip_address=${ifaceConfig.ip4}/${new Netmask(ifaceConfig.ip4 + '/' + ifaceConfig.ip4subnet).bitmask}
+static routers=${ifaceConfig.ip4gateway}
+static domain_name_servers=${ifaceConfig.dns.join(' ')}
+static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
+        `;
+    });
 
-    const wifiString = config.wlan0.wifi || true ? 'wpa-conf /etc/wpa_supplicant/wpa_supplicant.conf' : '';
-
-    interfaces += config['wlan0'].dhcp ? `
-auto wlan0
-allow-hotplug wlan0
-iface wlan0 inet dhcp
-#dns-nameservers 8.8.8.8 8.8.4.4
-${wifiString}
-` : `
-auto wlan0
-allow-hotplug wlan0
-iface wlan0 inet static
-address ${config['wlan0'].ip4}
-netmask ${config['wlan0'].ip4subnet}
-gateway ${config['wlan0'].ip4gateway}
-dns-nameservers ${config['wlan0'].dns.join(' ')}
-${wifiString}
-`;
     console.log(interfaces);
     await exec(`echo ${argumentEscape(interfaces)} | sudo tee ${interfacesFile}`);
 
-    if (false && wifiOnly) {
-        await sudo('ifdown wlan0');
-        await sudo('ifup wlan0');
-    } else {
-        await sudo('service networking restart');
-    }
-    await sudo('service dhcpcd stop');
+    await sudo('ip addr flush wlan0');
+    await sudo('ip addr flush eth0');
+    await sudo('ifconfig wlan0 down');
+    await sudo('ifconfig wlan0 up');
+    await sudo('service dhcpcd restart');
 };
 
 const getWiFi = async () => {
@@ -194,11 +202,12 @@ const triggers = {
                         interfaceItem.dns = config[interfaceItem.iface].dns || [''];
                         interfaceItem.ip4 = config[interfaceItem.iface].ip4 || '';
                         interfaceItem.ip4subnet = config[interfaceItem.iface].ip4subnet || '';
+                        interfaceItem.ip6 = config[interfaceItem.iface].ip6 || '';
+                        interfaceItem.ip6subnet = config[interfaceItem.iface].ip6subnet || '';
                         interfaceItem.gateway = config[interfaceItem.iface].ip4gateway || '';
                         interfaceItem.type = interfaceItem.iface[0] === 'w' ? 'wireless' : 'wired';
                     }
                 });
-                console.log(result);
                 response(result);
             }
         });
@@ -236,7 +245,11 @@ const triggers = {
             });
         } else {
             await wifiConnect(input.ssid, input.password);
-            response({result: (await exec('iwgetid -r')).stdout.trim() === 'input.ssid'});
+            try {
+                response({result: (await exec('iwgetid -r')).stdout.trim() === 'input.ssid'});
+            } catch {
+                response({result: true});
+            }
         }
     },
     wifiDisconnect: async (input, response) => {
@@ -261,8 +274,6 @@ const triggers = {
                 response(false);
             }
         } else {
-            console.log(input);
-
             const config = getConfig();
 
             config[input.data.iface] = input.data.dhcp ?
@@ -271,6 +282,8 @@ const triggers = {
                     dhcp: false,
                     ip4: input.data.ip4,
                     ip4subnet: input.data.ip4subnet,
+                    ip6: input.data.ip6,
+                    ip6subnet: input.data.ip6subnet,
                     ip4gateway: input.data.gateway,
                     dns: input.data.dns,
                 };
@@ -306,7 +319,9 @@ function startAdapter(options) {
 }
 
 async function main() {
-    console.log(getWiFi());
+    if (!fs.existsSync('/etc/dhcpcd.conf.bak')) {
+        sudo('cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak')
+    }
 }
 
 // @ts-ignore parent is a valid property on module
