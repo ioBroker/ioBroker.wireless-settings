@@ -34,16 +34,6 @@ function build() {
     );
 }
 
-if (window.location.host !== 'localhost:3000' && false) {
-    Sentry.init({
-        dsn: 'https://5ad729dbed504d15aa8bde423cae9a8e@sentry.iobroker.net/57',
-        release: `iobroker.${window.adapterName}@${version}`,
-        integrations: [
-            new SentryIntegrations.Dedupe(),
-        ],
-    });
-}
-
 build();
 
 // If you want your app to work offline and load faster, you can change

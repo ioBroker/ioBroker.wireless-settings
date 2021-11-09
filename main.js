@@ -1,20 +1,20 @@
 'use strict';
 
-const utils       = require('@iobroker/adapter-core');
+const utils = require('@iobroker/adapter-core');
 const wifi = require('node-wifi');
 const networkInterfaces = require('os').networkInterfaces;
-const dns       = require('dns');
-const fs       = require('fs');
+const dns = require('dns');
+const fs = require('fs');
 const Netmask = require('netmask').Netmask
 const si = require('systeminformation');
 const adapterName = require('./package.json').name.split('.').pop();
-const childProcess = require('child_process');
+// const childProcess = require('child_process');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 
 const configFile = __dirname + '/data/network.json';
 const configTemplateFile = __dirname + '/data/network.template.json';
-const interfacesFile = '/etc/dhcpcd.conf';
+let interfacesFile = '/etc/dhcpcd.conf';
 
 /**
  * The adapter instance
@@ -28,8 +28,8 @@ const sudo = async (command, password) => {
     // return childProcess.execSync(command).toString().trim();
 };
 
-const argumentEscape = (argument) => {
-    return '\'' + argument.replace(/'/, /\\'/g) + '\'';
+const argumentEscape = argument => {
+    return `'${argument.replace(/'/, /\\'/g)}'`;
 };
 
 const getConfig = () => {
@@ -39,7 +39,7 @@ const getConfig = () => {
     return JSON.parse(fs.readFileSync(configFile).toString());
 };
 
-const setConfig = (config) => {
+const setConfig = config => {
     if (!fs.existsSync(configFile)) {
         fs.copyFileSync(configTemplateFile, configFile);
     }
@@ -49,7 +49,7 @@ const setConfig = (config) => {
 const wifiConnect = async (ssid, password) => {
     const config = getConfig();
     config.wlan0.wifi = ssid;
-    config.wlan0.wifiPassword = password ? true : false;
+    config.wlan0.wifiPassword = !!password;
     setConfig(config);
     if (password) {
         const wpaSupplicant = `
@@ -124,13 +124,16 @@ static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
     });
 
     console.log(interfaces);
-    await exec(`echo ${argumentEscape(interfaces)} | sudo tee ${interfacesFile}`);
+    // await exec(`echo ${argumentEscape(interfaces)} | sudo tee ${interfacesFile}`);
+    if (interfacesFile) {
+        fs.writeFileSync(interfacesFile, interfaces);
 
-    await sudo('ip addr flush wlan0');
-    await sudo('ip addr flush eth0');
-    await sudo('ifconfig wlan0 down');
-    await sudo('ifconfig wlan0 up');
-    await sudo('service dhcpcd restart');
+        await sudo('ip addr flush wlan0');
+        await sudo('ip addr flush eth0');
+        await sudo('ifconfig wlan0 down');
+        await sudo('ifconfig wlan0 up');
+        await sudo('service dhcpcd restart');
+    }
 };
 
 const getWiFi = async () => {
@@ -144,16 +147,16 @@ const getWiFi = async () => {
             networks.push(currentNetwork);
         }
         let matches;
-        if (matches = line.match(/^ESSID:"(.*)"/)) {
+        if ((matches = line.match(/^ESSID:"(.*)"/))) {
             currentNetwork.ssid = matches[1];
         }
-        if (matches = line.match(/Encryption key:off/)) {
+        if (line.match(/Encryption key:off/)) {
             currentNetwork.security.push('Open');
         }
-        if (matches = line.match(/IE: WPA Version 1/)) {
+        if (line.match(/IE: WPA Version 1/)) {
             currentNetwork.security.push('WPA');
         }
-        if (matches = line.match(/IEEE 802\.11i\/WPA2 Version 1/)) {
+        if (line.match(/IEEE 802\.11i\/WPA2 Version 1/)) {
             currentNetwork.security.push('WPA2');
         }
     });
@@ -168,7 +171,7 @@ const getWiFiConnections = async () => {
     } catch (e) {
 
     }
-    return ssid ? [{ssid: ssid}] : [];
+    return ssid ? [{ssid}] : [];
 };
 
 const triggers = {
@@ -190,12 +193,15 @@ const triggers = {
                         ip6subnet: '',
                         dhcp: false,
                     }));
+
                 consoleInterfaces.forEach(consoleInterface => {
                     if (!result.find(interfaceItem => interfaceItem.iface === consoleInterface.iface)) {
                         result.push(consoleInterface);
                     }
                 });
+
                 const config = getConfig();
+
                 result.forEach(interfaceItem => {
                     if (config[interfaceItem.iface]) {
                         interfaceItem.dhcp = config[interfaceItem.iface].dhcp;
@@ -307,20 +313,37 @@ function startAdapter(options) {
         // start here!
         ready: main, // Main method defined below for readability
 
-        message: (obj) => {
+        message: obj => {
             if (typeof obj === 'object' && obj.callback) {
-                const response = (result) => adapter.sendTo(obj.from, obj.command, result, obj.callback);
+                const response = result => adapter.sendTo(obj.from, obj.command, result, obj.callback);
 
-                triggers[obj.command](obj.message, response);
+                if (triggers[obj.command]) {
+                    triggers[obj.command](obj.message, response);
+                } else {
+                    // error
+                }
             }
         }
-
     }));
 }
 
 async function main() {
-    if (!fs.existsSync('/etc/dhcpcd.conf.bak')) {
-        sudo('cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak')
+    try {
+        if (fs.existsSync(interfacesFile)) {
+            if (!fs.existsSync(interfacesFile + '.bak')) {
+                fs.writeFileSync(`${interfacesFile}.bak`, fs.readFileSync(interfacesFile));
+            }
+        } else if (fs.existsSync('/etc/dhcp/dhclient.conf')) {
+            interfacesFile = '/etc/dhcp/dhclient.conf';
+            if (!fs.existsSync(interfacesFile + '.bak')) {
+                fs.writeFileSync(`${interfacesFile}.bak`, fs.readFileSync(interfacesFile));
+            }
+        } else {
+            adapter.log.warn('Cannot find DHCP file. Nether /etc/dhcp/dhclient.conf nor /etc/dhcpcd.conf exist');
+            interfacesFile = null;
+        }
+    } catch (e) {
+        adapter.log.error(`Cannot write ${interfacesFile}. Please call "sudo chown iobroker ${interfacesFile}" in shell!`)
     }
 }
 

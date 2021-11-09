@@ -22,6 +22,13 @@ This adapter is used to anonymously collect the data on the central server for s
 - add setTimeout for send events (don't forget to clean the timeout on unload)
 - flash with green on update statistics only for according objects (by the update and on save)
 
+## Preparation
+sudo chown iobroker /etc/dhcp/dhclient.conf
+sudo chown iobroker /etc/dhcpcd.conf
+
+## Todo
+GUI: detect if adapter running and if not show according message
+
 ## Changelog
 ### 0.1.0 (2021-01-18)
 * (ioBroker) fixed build scripts
@@ -32,7 +39,7 @@ This adapter is used to anonymously collect the data on the central server for s
 ## License
 MIT License
 
-Copyright (c) 2020-2021 bluefox <dogafox@gmail.com>
+Copyright (c) 2021 bluefox <dogafox@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

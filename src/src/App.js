@@ -33,7 +33,7 @@ const styles = () => ({
 });
 
 const ipValidate = (ip, isMask) => {
-    let result = true;
+    let result;
     const matches = ip.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$/);
     if (!matches) {
         result = false;
@@ -44,6 +44,7 @@ const ipValidate = (ip, isMask) => {
             result = (parseInt(matches[1]) * 256 ** 3 + parseInt(matches[2]) * 256 ** 2 + parseInt(matches[3]) * 256 + parseInt(matches[4])).toString(2).match(/^1+0+$/);
         }
     }
+
     return result;
 };
 
@@ -82,42 +83,45 @@ class App extends GenericApp {
 
     onConnectionReady() {
         this.refresh();
+
         setInterval(() => {
-            this.socket.sendTo('network.0', 'wifi', null).then(result => {
-                if (result.length) {
-                    this.setState({ wifi: result });
-                }
-            });
-            this.socket.sendTo('network.0', 'wifiConnections', null).then(result => {
-                this.setState({ wifiConnections: result });
-            });
+            this.socket.sendTo('network.' + this.instance, 'wifi', null)
+                .then(wifi => {
+                    wifi.length && this.setState({ wifi });
+                    return this.socket.sendTo('network.' + this.instance, 'wifiConnections', null);
+                })
+                .then(wifiConnections => this.setState({ wifiConnections }));
         }, 4000);
     }
 
     refresh() {
-        this.socket.sendTo('network.0', 'interfaces', null).then(result => {
-            result.sort((item1, item2) => (item1.mac > item2.mac ? -1 : 1));
-            result.sort(item1 => (item1.type === 'wired' ? -1 : 1));
-            result.sort(item1 => (!item1.virtual ? -1 : 1));
-            result = result.filter(interfaceItem => interfaceItem.ip4 !== '127.0.0.1');
-            result = result.map(interfaceItem => {
-                if (typeof interfaceItem.dhcp === 'string') {
-                    interfaceItem.dhcp = JSON.parse(interfaceItem.dhcp);
-                }
+        this.socket.sendTo('network.' + this.instance, 'interfaces', null)
+            .then(interfaces => {
+                interfaces.sort((item1, item2) => item1.mac > item2.mac ? -1 : 1);
+                interfaces.sort((item1, item2) => item1.type === 'wired' ? -1 : 1);
+                interfaces.sort((item1, item2) => !item1.virtual ? -1 : 1);
+                interfaces = interfaces.filter(interfaceItem => interfaceItem.ip4 !== '127.0.0.1');
+                interfaces = interfaces.map(interfaceItem => {
+                    if (typeof interfaceItem.dhcp === 'string') {
+                        interfaceItem.dhcp = JSON.parse(interfaceItem.dhcp);
+                    }
 
-                return interfaceItem;
-            });
-            this.setState({ interfaces: result, interfacesChanged: result });
-        });
-        this.socket.sendTo('network.0', 'wifi', null).then(result => {
-            this.setState({ wifi: result });
-        });
-        this.socket.sendTo('network.0', 'dns', null).then(result => {
-            this.setState({ dns: result });
-        });
-        this.socket.sendTo('network.0', 'wifiConnections', null).then(result => {
-            this.setState({ wifiConnections: result });
-        });
+                    return interfaceItem;
+                });
+
+                this.setState({ interfaces, interfacesChanged: JSON.parse(JSON.stringify(interfaces)) });
+
+                return this.socket.sendTo('network.' + this.instance, 'wifi', null);
+            })
+            .then(wifi => {
+                this.setState({ wifi });
+                return this.socket.sendTo('network.' + this.instance, 'dns', null);
+            })
+            .then(dns => {
+                this.setState({ dns });
+                return this.socket.sendTo('network.' + this.instance, 'wifiConnections', null);
+            })
+            .then(wifiConnections => this.setState({ wifiConnections }));
     }
 
     setInterfaceParam = (index, param, value) => {
@@ -127,21 +131,21 @@ class App extends GenericApp {
     }
 
     setDns = (interfaceIndex, dnsIndex, value) => {
-        const interfaces = JSON.parse(JSON.stringify(this.state.interfacesChanged));
-        interfaces[interfaceIndex].dns[dnsIndex] = value;
-        this.setState({ interfacesChanged: interfaces });
+        const interfacesChanged = JSON.parse(JSON.stringify(this.state.interfacesChanged));
+        interfacesChanged[interfaceIndex].dns[dnsIndex] = value;
+        this.setState({ interfacesChanged });
     }
 
     addDns = interfaceIndex => {
-        const interfaces = JSON.parse(JSON.stringify(this.state.interfacesChanged));
-        interfaces[interfaceIndex].dns.push('');
-        this.setState({ interfacesChanged: interfaces });
+        const interfacesChanged = JSON.parse(JSON.stringify(this.state.interfacesChanged));
+        interfacesChanged[interfaceIndex].dns.push('');
+        this.setState({ interfacesChanged });
     }
 
     removeDns = (interfaceIndex, dnsIndex) => {
-        const interfaces = JSON.parse(JSON.stringify(this.state.interfacesChanged));
-        interfaces[interfaceIndex].dns.splice(dnsIndex, 1);
-        this.setState({ interfacesChanged: interfaces });
+        const interfacesChanged = JSON.parse(JSON.stringify(this.state.interfacesChanged));
+        interfacesChanged[interfaceIndex].dns.splice(dnsIndex, 1);
+        this.setState({ interfacesChanged });
     }
 
     getSelectedTab() {
@@ -149,17 +153,18 @@ class App extends GenericApp {
     }
 
     sendData = (index, password) => {
-        this.socket.sendTo('network.0', 'changeInterface', {
+        this.socket.sendTo('network.' + this.instance, 'changeInterface', {
             rootPassword: password,
             data: this.state.interfacesChanged[index],
-        }).then(result => {
-            if (result) {
-                this.props.enqueueSnackbar(I18n.t('Interface updated'), { variant: 'success' });
-                this.refresh();
-            } else {
-                this.props.enqueueSnackbar(I18n.t('Interface not updated'), { variant: 'error' });
-            }
-        });
+        })
+            .then(result => {
+                if (result) {
+                    this.props.enqueueSnackbar(I18n.t('Interface updated'), { variant: 'success' });
+                    this.refresh();
+                } else {
+                    this.props.enqueueSnackbar(I18n.t('Interface not updated'), { variant: 'error' });
+                }
+            });
 
         if (window.location.hostname === this.state.interfaces[index].ip4 && this.state.interfacesChanged[index].ip4 !== this.state.interfaces[index].ip4) {
             window.location.href = `http://${this.state.interfacesChanged[index].ip4}:${window.location.port}`;
@@ -167,27 +172,27 @@ class App extends GenericApp {
     }
 
     connect = (ssid, password) => {
-        this.socket.sendTo('network.0', 'wifiConnect', {
-            ssid, password,
-        }).then(result => {
-            if (result.result) {
-                this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
-                this.refresh();
-            } else {
-                this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
-            }
-        });
+        this.socket.sendTo('network.' + this.instance, 'wifiConnect', { ssid, password })
+            .then(result => {
+                if (result.result) {
+                    this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
+                    this.refresh();
+                } else {
+                    this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
+                }
+            });
     }
 
     disconnect = () => {
-        this.socket.sendTo('network.0', 'wifiDisconnect', null).then(result => {
-            if (result.result) {
-                this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' });
-                this.refresh();
-            } else {
-                this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
-            }
-        });
+        this.socket.sendTo('network.' + this.instance, 'wifiDisconnect', null)
+            .then(result => {
+                if (result.result) {
+                    this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' });
+                    this.refresh();
+                } else {
+                    this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
+                }
+            });
     }
 
     renderRootDialog() {
@@ -298,31 +303,56 @@ class App extends GenericApp {
                     <>
                         <h4>IPv4</h4>
                         <div>
-                            <TextField value={interfaceItem.ip4} label={I18n.t('IPv4')} onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)} disabled={interfaceItem.dhcp} />
+                            <TextField
+                                value={interfaceItem.ip4}
+                                label={I18n.t('IPv4')}
+                                onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)}
+                                disabled={interfaceItem.dhcp}
+                            />
                         </div>
                         <div>
-                            <TextField value={interfaceItem.ip4subnet} label={I18n.t('IPv4 netmask')} onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)} disabled={interfaceItem.dhcp} />
+                            <TextField
+                                value={interfaceItem.ip4subnet}
+                                label={I18n.t('IPv4 netmask')}
+                                onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)}
+                                disabled={interfaceItem.dhcp}
+                            />
                         </div>
                         <div>
-                            <TextField value={interfaceItem.gateway} label={I18n.t('Gateway')} onChange={e => this.setInterfaceParam(i, 'gateway', e.target.value)} disabled={interfaceItem.dhcp} />
+                            <TextField
+                                value={interfaceItem.gateway}
+                                label={I18n.t('Gateway')}
+                                onChange={e => this.setInterfaceParam(i, 'gateway', e.target.value)}
+                                disabled={interfaceItem.dhcp}
+                            />
                         </div>
                         <h4>IPv6</h4>
                         <div>
-                            <TextField value={interfaceItem.ip6} label={I18n.t('IPv6')} onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)} disabled={interfaceItem.dhcp} />
+                            <TextField
+                                value={interfaceItem.ip6}
+                                label={I18n.t('IPv6')}
+                                onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)}
+                                disabled={interfaceItem.dhcp}
+                            />
                         </div>
                         <div>
-                            <TextField value={interfaceItem.ip6subnet} label={I18n.t('IPv6 netmask')} onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)} disabled={interfaceItem.dhcp} />
+                            <TextField
+                                value={interfaceItem.ip6subnet}
+                                label={I18n.t('IPv6 netmask')}
+                                onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)}
+                                disabled={interfaceItem.dhcp}
+                            />
                         </div>
                         <h4>DNS</h4>
                     </>
                     {
-                        interfaceItem.dns.map((dnsRecord, dnsI) => <div key={dnsI}>
+                        interfaceItem.dns && interfaceItem.dns.map((dnsRecord, dnsI) => <div key={dnsI}>
                             <TextField
                                 value={dnsRecord}
                                 label={I18n.t('DNS record')}
                                 onChange={e => this.setDns(i, dnsI, e.target.value)}
                             />
-                            {interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>
+                            {interfaceItem.dns && interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>
                                 <DeleteIcon />
                             </IconButton> : null}
                         </div>)
@@ -368,9 +398,7 @@ class App extends GenericApp {
                         if (wifi.security.includes('Open')) {
                             this.connect(wifi.ssid, '');
                         } else {
-                            this.setState({
-                                wifiDialog: wifi.ssid,
-                            });
+                            this.setState({wifiDialog: wifi.ssid});
                         }
                     }}
                 >
@@ -400,7 +428,6 @@ class App extends GenericApp {
             <div className="App" style={{ background: this.state.themeType === 'dark' ? '#000' : '#FFF' }}>
                 <Container>
                     <AppBar position="static">
-
                         <Tabs value={this.getSelectedTab()} onChange={(e, index) => this.selectTab(index, index)} variant="scrollable">
                             {this.state.interfaces.map((interfaceItem, i) => <Tab
                                 key={i}
