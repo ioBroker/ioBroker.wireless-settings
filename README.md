@@ -23,8 +23,22 @@ This adapter is used to anonymously collect the data on the central server for s
 - flash with green on update statistics only for according objects (by the update and on save)
 
 ## Preparation
+```
 sudo chown iobroker /etc/dhcp/dhclient.conf
 sudo chown iobroker /etc/dhcpcd.conf
+sudo chown iobroker /etc/wpa_supplicant/wpa_supplicant.conf
+```
+
+Edit /etc/sudoers:
+```
+# User privilege specification
+root    ALL=(ALL:ALL) ALL
+iobroker ALL=(root) NOPASSWD: /usr/sbin/iwlist
+iobroker ALL=(root) NOPASSWD: /usr/sbin/ip
+iobroker ALL=(root) NOPASSWD: /usr/sbin/ifconfig
+iobroker ALL=(root) NOPASSWD: /usr/sbin/service
+```
+
 
 ## Todo
 GUI: detect if adapter running and if not show according message

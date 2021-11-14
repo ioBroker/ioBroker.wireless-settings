@@ -15,6 +15,7 @@ const exec = util.promisify(require('child_process').exec);
 const configFile = __dirname + '/data/network.json';
 const configTemplateFile = __dirname + '/data/network.template.json';
 let interfacesFile = '/etc/dhcpcd.conf';
+let wpaSupplicantFile = '/etc/wpa_supplicant/wpa_supplicant.conf';
 
 /**
  * The adapter instance
@@ -64,7 +65,8 @@ network={
 }
 `;
 
-        await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        // await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
     } else {
         const wpaSupplicant = `
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
@@ -76,7 +78,8 @@ network={
     key_mgmt=NONE
 }
 `;
-        await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        // await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
     }
     // await sudo('service wpa_supplicant restart');
     await writeInterfaces(true);
@@ -92,7 +95,8 @@ ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
 country=RU
     `;
-    await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    // await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
     // await sudo('wpa_cli reconfigure');
     await writeInterfaces(true);
 };
@@ -138,7 +142,8 @@ static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
 
 const getWiFi = async () => {
     const networks = [];
-    const iwlist = (await exec('sudo iwlist scan')).stdout;
+    const iwlist = (await exec('iwlist scan')).stdout;
+
     let currentNetwork = null;
     iwlist.split('\n').forEach(line => {
         line = line.trim();
@@ -315,7 +320,9 @@ function startAdapter(options) {
 
         message: obj => {
             if (typeof obj === 'object' && obj.callback) {
-                const response = result => adapter.sendTo(obj.from, obj.command, result, obj.callback);
+                const response = result => {
+                    adapter.sendTo(obj.from, obj.command, result, obj.callback);
+                }
 
                 if (triggers[obj.command]) {
                     triggers[obj.command](obj.message, response);
@@ -344,6 +351,16 @@ async function main() {
         }
     } catch (e) {
         adapter.log.error(`Cannot write ${interfacesFile}. Please call "sudo chown iobroker ${interfacesFile}" in shell!`)
+    }
+
+    try {
+        if (fs.existsSync(wpaSupplicantFile)) {
+            fs.readFileSync(wpaSupplicantFile);
+        } else {
+            wpaSupplicantFile = null;
+        }
+    } catch (e) {
+        adapter.log.error(`Cannot read ${wpaSupplicantFile}. Please call "sudo chown iobroker ${wpaSupplicantFile}" in shell!`)
     }
 }
 
