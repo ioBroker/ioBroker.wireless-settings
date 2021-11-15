@@ -27,6 +27,7 @@ const sudo = async command => {
     if (!stopping) {
         cmdRunning = command;
         const result = (await exec(`sudo ${command}`)).stdout.trim();
+        adapter.log.debug(`Result for "SUDO ${command}": ${result}`);
         cmdRunning = false;
         return result;
     } else {
@@ -41,6 +42,7 @@ const justExec = async command => {
     if (!stopping) {
         cmdRunning = command;
         const result = (await exec(command)).stdout.trim();
+        adapter.log.debug(`Result for "${command}": ${result}`);
         cmdRunning = false;
         return result;
     } else {
@@ -169,7 +171,7 @@ static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
 
 const getWiFi = async () => {
     const networks = [];
-    const iwlist = await justExec('sudo iwlist scan');
+    const iwlist = await sudo('iwlist scan');
 
     if (!stopping) {
         let currentNetwork = null;
@@ -206,7 +208,7 @@ const getWiFiConnections = async () => {
     try {
         ssid = await justExec('iwgetid -r');
     } catch (e) {
-        adapter.log.warn('Cannot execute "iwgetid": ' + e);
+        //adapter.log.warn('Cannot execute "iwgetid": ' + e);
     }
     return ssid ? [{ssid}] : [];
 };
