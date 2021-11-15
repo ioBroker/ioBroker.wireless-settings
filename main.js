@@ -5,17 +5,17 @@ const wifi = require('node-wifi');
 const networkInterfaces = require('os').networkInterfaces;
 const dns = require('dns');
 const fs = require('fs');
-const Netmask = require('netmask').Netmask
+const Netmask = require('netmask').Netmask;
 const si = require('systeminformation');
 const adapterName = require('./package.json').name.split('.').pop();
 // const childProcess = require('child_process');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-
 const configFile = __dirname + '/data/network.json';
 const configTemplateFile = __dirname + '/data/network.template.json';
-let interfacesFile = '/etc/dhcpcd.conf';
-let wpaSupplicantFile = '/etc/wpa_supplicant/wpa_supplicant.conf';
+
+let stopping = false;
+let cmdRunning = false;
 
 /**
  * The adapter instance
@@ -23,11 +23,34 @@ let wpaSupplicantFile = '/etc/wpa_supplicant/wpa_supplicant.conf';
  */
 let adapter;
 
-const sudo = async (command, password) => {
-    return (await exec(`sudo ${command}`)).stdout.trim();
+const sudo = async command => {
+    if (!stopping) {
+        cmdRunning = command;
+        const result = (await exec(`sudo ${command}`)).stdout.trim();
+        cmdRunning = false;
+        return result;
+    } else {
+        return '';
+    }
+
     //return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
     // return childProcess.execSync(command).toString().trim();
 };
+
+const justExec = async command => {
+    if (!stopping) {
+        cmdRunning = command;
+        const result = (await exec(command)).stdout.trim();
+        cmdRunning = false;
+        return result;
+    } else {
+        return '';
+    }
+
+    // return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
+    // return childProcess.execSync(command).toString().trim();
+};
+
 
 const argumentEscape = argument => {
     return `'${argument.replace(/'/, /\\'/g)}'`;
@@ -37,6 +60,7 @@ const getConfig = () => {
     if (!fs.existsSync(configFile)) {
         fs.copyFileSync(configTemplateFile, configFile);
     }
+
     return JSON.parse(fs.readFileSync(configFile).toString());
 };
 
@@ -65,8 +89,8 @@ network={
 }
 `;
 
-        // await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
-        fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
+        await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        // fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
     } else {
         const wpaSupplicant = `
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
@@ -78,8 +102,8 @@ network={
     key_mgmt=NONE
 }
 `;
-        // await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
-        fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
+        await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+        // fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
     }
     // await sudo('service wpa_supplicant restart');
     await writeInterfaces(true);
@@ -95,13 +119,15 @@ ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
 country=RU
     `;
-    // await exec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
-    fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
-    // await sudo('wpa_cli reconfigure');
-    await writeInterfaces(true);
+    await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    if (!stopping) {
+        // fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
+        // await sudo('wpa_cli reconfigure');
+        await writeInterfaces(true);
+    }
 };
 
-const writeInterfaces = async (wifiOnly) => {
+const writeInterfaces = async wifiOnly => {
     const config = getConfig();
     let interfaces = `
 hostname
@@ -128,9 +154,10 @@ static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
     });
 
     console.log(interfaces);
-    // await exec(`echo ${argumentEscape(interfaces)} | sudo tee ${interfacesFile}`);
-    if (interfacesFile) {
-        fs.writeFileSync(interfacesFile, interfaces);
+    await justExec(`echo ${argumentEscape(interfaces)} | sudo tee /etc/dhcpcd.conf`);
+
+    if (!stopping) {
+        // fs.writeFileSync(interfacesFile, interfaces);
 
         await sudo('ip addr flush wlan0');
         await sudo('ip addr flush eth0');
@@ -142,29 +169,31 @@ static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
 
 const getWiFi = async () => {
     const networks = [];
-    const iwlist = (await exec('iwlist scan')).stdout;
+    const iwlist = await justExec('iwlist scan');
 
-    let currentNetwork = null;
-    iwlist.split('\n').forEach(line => {
-        line = line.trim();
-        if (line.startsWith('Cell')) {
-            currentNetwork = {security: []};
-            networks.push(currentNetwork);
-        }
-        let matches;
-        if ((matches = line.match(/^ESSID:"(.*)"/))) {
-            currentNetwork.ssid = matches[1];
-        }
-        if (line.match(/Encryption key:off/)) {
-            currentNetwork.security.push('Open');
-        }
-        if (line.match(/IE: WPA Version 1/)) {
-            currentNetwork.security.push('WPA');
-        }
-        if (line.match(/IEEE 802\.11i\/WPA2 Version 1/)) {
-            currentNetwork.security.push('WPA2');
-        }
-    });
+    if (!stopping) {
+        let currentNetwork = null;
+        iwlist.split('\n').forEach(line => {
+            line = line.trim();
+            if (line.startsWith('Cell')) {
+                currentNetwork = {security: []};
+                networks.push(currentNetwork);
+            }
+            let matches;
+            if ((matches = line.match(/^ESSID:"(.*)"/))) {
+                currentNetwork.ssid = matches[1];
+            }
+            if (line.match(/Encryption key:off/)) {
+                currentNetwork.security.push('Open');
+            }
+            if (line.match(/IE: WPA Version 1/)) {
+                currentNetwork.security.push('WPA');
+            }
+            if (line.match(/IEEE 802\.11i\/WPA2 Version 1/)) {
+                currentNetwork.security.push('WPA2');
+            }
+        });
+    }
 
     return networks;
 };
@@ -172,9 +201,9 @@ const getWiFi = async () => {
 const getWiFiConnections = async () => {
     let ssid = null;
     try {
-        ssid = (await exec('iwgetid -r')).stdout.trim();
+        ssid = await justExec('iwgetid -r');
     } catch (e) {
-
+        adapter.log.warn('Cannot execute "iwgetid": ' + e);
     }
     return ssid ? [{ssid}] : [];
 };
@@ -189,7 +218,7 @@ const triggers = {
                     return interfaceItem;
                 }));
             } else {
-                const consoleInterfaces = (await exec('ip a | grep -P \'^[0-9]+:\'')).stdout.trim().
+                const consoleInterfaces = (await justExec('ip a | grep -P \'^[0-9]+:\'')).
                     split('\n').map(consoleInterface => ({
                         iface: consoleInterface.match(/^[0-9]+: (.*?):/)[1],
                         ip4: '',
@@ -245,34 +274,35 @@ const triggers = {
     },
     wifiConnect: async (input, response) => {
         if (process.platform === 'win32') {
-            wifi.init({
-                iface: null
-            });
+            wifi.init({iface: null});
+
             wifi.connect({ ssid: input.ssid, password: input.password }, error => {
                 if (error) {
                     response({result: false, error: error});
+                } else {
+                    response({result: true});
                 }
-                response({result: true});
             });
         } else {
             await wifiConnect(input.ssid, input.password);
+
             try {
-                response({result: (await exec('iwgetid -r')).stdout.trim() === 'input.ssid'});
-            } catch {
+                response({result: (await justExec('iwgetid -r')) === 'input.ssid'});
+            } catch (err) {
                 response({result: true});
             }
         }
     },
     wifiDisconnect: async (input, response) => {
         if (process.platform === 'win32') {
-            wifi.init({
-                iface: null
-            });
+            wifi.init({iface: null});
+
             await wifi.disconnect(error => {
                 if (error) {
                     response({result: false, error: error});
+                } else {
+                    response({result: true});
                 }
-                response({result: true});
             });
         } else {
             wifiDisconnect();
@@ -305,6 +335,15 @@ const triggers = {
     },
 };
 
+function waitForEnd(callback, _started) {
+    _started = _started || Date.now();
+    if (cmdRunning && Date.now() - _started < 4000) {
+        setTimeout(waitForEnd, 500, callback, _started);
+    } else {
+        callback && callback(Date.now() - _started >= 4000);
+    }
+}
+
 /**
  * Starts the adapter instance
  * @param {Partial<utils.AdapterOptions>} [options]
@@ -316,13 +355,21 @@ function startAdapter(options) {
 
         // The ready callback is called when databases are connected and adapter received configuration.
         // start here!
-        ready: main, // Main method defined below for readability
-
+        ready: async () => {
+            await main();
+        },
+        unload: callback => {
+            stopping = true;
+            waitForEnd(timeout => {
+                timeout && adapter.log.warn('Timeout by waiting of command: ' + cmdRunning);
+                callback && callback();
+            });
+        },
         message: obj => {
             if (typeof obj === 'object' && obj.callback) {
                 const response = result => {
                     adapter.sendTo(obj.from, obj.command, result, obj.callback);
-                }
+                };
 
                 if (triggers[obj.command]) {
                     triggers[obj.command](obj.message, response);
@@ -335,7 +382,10 @@ function startAdapter(options) {
 }
 
 async function main() {
-    try {
+    if (!fs.existsSync('/etc/dhcpcd.conf.bak')) {
+        await sudo('cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak');
+    }
+    /*try {
         if (fs.existsSync(interfacesFile)) {
             if (!fs.existsSync(interfacesFile + '.bak')) {
                 fs.writeFileSync(`${interfacesFile}.bak`, fs.readFileSync(interfacesFile));
@@ -361,7 +411,7 @@ async function main() {
         }
     } catch (e) {
         adapter.log.error(`Cannot read ${wpaSupplicantFile}. Please call "sudo chown iobroker ${wpaSupplicantFile}" in shell!`)
-    }
+    }*/
 }
 
 // @ts-ignore parent is a valid property on module

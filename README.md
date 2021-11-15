@@ -23,20 +23,19 @@ This adapter is used to anonymously collect the data on the central server for s
 - flash with green on update statistics only for according objects (by the update and on save)
 
 ## Preparation
-```
-sudo chown iobroker /etc/dhcp/dhclient.conf
-sudo chown iobroker /etc/dhcpcd.conf
-sudo chown iobroker /etc/wpa_supplicant/wpa_supplicant.conf
-```
-
-Edit /etc/sudoers:
+Edit /etc/sudoers (only visudo):
 ```
 # User privilege specification
 root    ALL=(ALL:ALL) ALL
-iobroker ALL=(root) NOPASSWD: /usr/sbin/iwlist
-iobroker ALL=(root) NOPASSWD: /usr/sbin/ip
-iobroker ALL=(root) NOPASSWD: /usr/sbin/ifconfig
-iobroker ALL=(root) NOPASSWD: /usr/sbin/service
+iobroker ALL=(root) NOPASSWD: /usr/sbin/iwlist scan
+iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush wlan0
+iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush eth0
+iobroker ALL=(root) NOPASSWD: /usr/sbin/ifconfig wlan0 down
+iobroker ALL=(root) NOPASSWD: /usr/sbin/ifconfig wlan0 up
+iobroker ALL=(root) NOPASSWD: /usr/sbin/service dhcpcd restart
+iobroker ALL=(root) NOPASSWD: /usr/bin/cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak
+iobroker ALL=(root) NOPASSWD: /usr/bin/tee /etc/wpa_supplicant/wpa_supplicant.conf
+iobroker ALL=(root) NOPASSWD: /usr/bin/tee /etc/dhcpcd.conf
 ```
 
 
