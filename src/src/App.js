@@ -8,12 +8,19 @@ import Loader from '@iobroker/adapter-react/Components/Loader';
 import I18n from '@iobroker/adapter-react/i18n';
 import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
 import WifiIcon from '@material-ui/icons/Wifi';
+import SignalWifi1BarIcon from '@material-ui/icons/SignalWifi1Bar';
+import SignalWifi1BarLockIcon from '@material-ui/icons/SignalWifi1BarLock';
+import SignalWifi2BarIcon from '@material-ui/icons/SignalWifi2Bar';
+import SignalWifi2BarLockIcon from '@material-ui/icons/SignalWifi2BarLock';
+import SignalWifi3BarIcon from '@material-ui/icons/SignalWifi3Bar';
+import SignalWifi3BarLockIcon from '@material-ui/icons/SignalWifi3BarLock';
 import SignalWifi4BarIcon from '@material-ui/icons/SignalWifi4Bar';
 import SignalWifi4BarLockIcon from '@material-ui/icons/SignalWifi4BarLock';
 import AddIcon from '@material-ui/icons/Add';
 import DeleteIcon from '@material-ui/icons/Delete';
 import {
     Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel, Grid, Container, IconButton,
+    Tooltip,
 } from '@material-ui/core';
 import { withSnackbar } from 'notistack';
 
@@ -47,6 +54,18 @@ const ipValidate = (ip, isMask) => {
 
     return result;
 };
+
+const getWiFiIcon = (open, quality) => {
+    if (quality > -67) {
+        return open ? <SignalWifi4BarIcon /> : <SignalWifi4BarLockIcon />;
+    } else if (quality > -70) {
+        return open ? <SignalWifi3BarIcon /> : <SignalWifi3BarLockIcon />;
+    } else if (quality > -80) {
+        return open ? <SignalWifi2BarIcon /> : <SignalWifi2BarLockIcon />;
+    } else {
+        return open ? <SignalWifi1BarIcon /> : <SignalWifi1BarLockIcon />;
+    };
+}
 
 class App extends GenericApp {
     constructor(props) {
@@ -83,23 +102,26 @@ class App extends GenericApp {
 
     onConnectionReady() {
         this.refresh();
+    }
 
-        setInterval(() => {
-            this.socket.sendTo('network.' + this.instance, 'wifi', null)
-                .then(wifi => {
-                    wifi.length && this.setState({ wifi });
-                    return this.socket.sendTo('network.' + this.instance, 'wifiConnections', null);
-                })
-                .then(wifiConnections => this.setState({ wifiConnections }));
-        }, 4000);
+    refreshWiFi = () => {
+        return this.socket.sendTo(`network.${this.instance}`, 'wifi', null)
+            .then(wifi => {
+                if (wifi.length) {
+                    wifi = wifi.filter(wifiNetwork => wifiNetwork.ssid.trim() !== '');
+                    this.setState({ wifi });
+                }
+                return this.socket.sendTo(`network.${this.instance}`, 'wifiConnections', null);
+            })
+            .then(wifiConnections => this.setState({ wifiConnections }));
     }
 
     refresh() {
-        this.socket.sendTo('network.' + this.instance, 'interfaces', null)
+        this.socket.sendTo(`network.${this.instance}`, 'interfaces', null)
             .then(interfaces => {
-                interfaces.sort((item1, item2) => item1.mac > item2.mac ? -1 : 1);
-                interfaces.sort((item1, item2) => item1.type === 'wired' ? -1 : 1);
-                interfaces.sort((item1, item2) => !item1.virtual ? -1 : 1);
+                interfaces.sort((item1, item2) => (item1.mac > item2.mac ? -1 : 1));
+                interfaces.sort((item1, item2) => (item1.type === 'wired' ? -1 : 1));
+                interfaces.sort((item1, item2) => (!item1.virtual ? -1 : 1));
                 interfaces = interfaces.filter(interfaceItem => interfaceItem.ip4 !== '127.0.0.1');
                 interfaces = interfaces.map(interfaceItem => {
                     if (typeof interfaceItem.dhcp === 'string') {
@@ -111,15 +133,16 @@ class App extends GenericApp {
 
                 this.setState({ interfaces, interfacesChanged: JSON.parse(JSON.stringify(interfaces)) });
 
-                return this.socket.sendTo('network.' + this.instance, 'wifi', null);
+                return this.socket.sendTo(`network.${this.instance}`, 'wifi', null);
             })
             .then(wifi => {
+                wifi = wifi.filter(wifiNetwork => wifiNetwork.ssid.trim() !== '');
                 this.setState({ wifi });
-                return this.socket.sendTo('network.' + this.instance, 'dns', null);
+                return this.socket.sendTo(`network.${this.instance}`, 'dns', null);
             })
             .then(dns => {
                 this.setState({ dns });
-                return this.socket.sendTo('network.' + this.instance, 'wifiConnections', null);
+                return this.socket.sendTo(`network.${this.instance}`, 'wifiConnections', null);
             })
             .then(wifiConnections => this.setState({ wifiConnections }));
     }
@@ -153,7 +176,7 @@ class App extends GenericApp {
     }
 
     sendData = (index, password) => {
-        this.socket.sendTo('network.' + this.instance, 'changeInterface', {
+        this.socket.sendTo(`network.${this.instance}`, 'changeInterface', {
             rootPassword: password,
             data: this.state.interfacesChanged[index],
         })
@@ -172,7 +195,7 @@ class App extends GenericApp {
     }
 
     connect = (ssid, password) => {
-        this.socket.sendTo('network.' + this.instance, 'wifiConnect', { ssid, password })
+        this.socket.sendTo(`network.${this.instance}`, 'wifiConnect', { ssid, password, iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
             .then(result => {
                 if (result.result) {
                     this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
@@ -184,7 +207,7 @@ class App extends GenericApp {
     }
 
     disconnect = () => {
-        this.socket.sendTo('network.' + this.instance, 'wifiDisconnect', null)
+        this.socket.sendTo(`network.${this.instance}`, 'wifiDisconnect', { iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
             .then(result => {
                 if (result.result) {
                     this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' });
@@ -331,16 +354,14 @@ class App extends GenericApp {
                             <TextField
                                 value={interfaceItem.ip6}
                                 label={I18n.t('IPv6')}
-                                onChange={e => this.setInterfaceParam(i, 'ip6', e.target.value)}
-                                disabled={interfaceItem.dhcp}
+                                disabled
                             />
                         </div>
                         <div>
                             <TextField
                                 value={interfaceItem.ip6subnet}
                                 label={I18n.t('IPv6 netmask')}
-                                onChange={e => this.setInterfaceParam(i, 'ip6subnet', e.target.value)}
-                                disabled={interfaceItem.dhcp}
+                                disabled
                             />
                         </div>
                         <h4>DNS</h4>
@@ -351,16 +372,21 @@ class App extends GenericApp {
                                 value={dnsRecord}
                                 label={I18n.t('DNS record')}
                                 onChange={e => this.setDns(i, dnsI, e.target.value)}
+                                disabled={interfaceItem.dhcp}
                             />
-                            {interfaceItem.dns && interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>
+                            {!interfaceItem.dhcp && interfaceItem.dns && interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>
                                 <DeleteIcon />
                             </IconButton> : null}
                         </div>)
                     }
                     <div>
-                        <IconButton onClick={() => this.addDns(i)}>
-                            <AddIcon />
-                        </IconButton>
+                        {
+                            !interfaceItem.dhcp ? 
+                            <IconButton onClick={() => this.addDns(i)}>
+                                <AddIcon />
+                            </IconButton>
+                            : null
+                        }
                     </div>
                     <div>
                         <Button
@@ -375,7 +401,12 @@ class App extends GenericApp {
                 </Grid>
                 {interfaceItem.type === 'wired'
                     ? null
-                    : <Grid item>{this.renderWifi()}</Grid>}
+                    : <Grid item>
+                        <div>
+                            <Button onClick={this.refreshWiFi}>Refresh</Button>
+                        </div>
+                        {this.renderWifi()}
+                    </Grid>}
             </Grid>
             <pre>
                 {/* {interfaceItem.type === 'wireless'
@@ -388,7 +419,7 @@ class App extends GenericApp {
 
     renderWifi() {
         return this.state.wifi.map((wifi, i) => {
-            const connected = this.state.wifiConnections.length && wifi.ssid === this.state.wifiConnections[0].ssid;
+            const connected = !!(this.state.wifiConnections.length && wifi.ssid === this.state.wifiConnections[0].ssid);
             return <div key={i}>
                 <Button
                     variant={connected ? 'contained' : undefined}
@@ -398,14 +429,16 @@ class App extends GenericApp {
                         if (wifi.security.includes('Open')) {
                             this.connect(wifi.ssid, '');
                         } else {
-                            this.setState({wifiDialog: wifi.ssid});
+                            this.setState({ wifiDialog: wifi.ssid });
                         }
                     }}
                 >
-                    {wifi.security.includes('Open')
-                        ? <SignalWifi4BarIcon />
-                        : <SignalWifi4BarLockIcon />}
-                    {wifi.ssid} {wifi.quality} dBm
+                    <Tooltip title={wifi.quality + ' dBm'}>
+                        {getWiFiIcon(wifi.security.includes('Open'), parseInt(wifi.quality))}
+                    </Tooltip>
+                    &nbsp;
+                    {wifi.ssid}
+                    {' '}
                 </Button>
                 {' '}
                 {connected
@@ -433,6 +466,7 @@ class App extends GenericApp {
                                 key={i}
                                 label={<div className={this.props.classes.tabContainer}>
                                     {interfaceItem.type === 'wired' ? <SettingsInputComponentIcon /> : <WifiIcon />}
+                                    &nbsp;
                                     {interfaceItem.iface}
                                 </div>}
                             />)}

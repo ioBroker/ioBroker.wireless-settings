@@ -73,10 +73,10 @@ const setConfig = config => {
     fs.writeFileSync(configFile, JSON.stringify(config, null, 4));
 };
 
-const wifiConnect = async (ssid, password) => {
+const wifiConnect = async (ssid, password, iface) => {
     const config = getConfig();
-    config.wlan0.wifi = ssid;
-    config.wlan0.wifiPassword = !!password;
+    config[iface].wifi = ssid;
+    config[iface].wifiPassword = !!password;
     setConfig(config);
     if (password) {
         const wpaSupplicant = `
@@ -111,10 +111,10 @@ network={
     await writeInterfaces(true);
 };
 
-const wifiDisconnect = async () => {
+const wifiDisconnect = async (iface) => {
     const config = getConfig();
-    delete config.wlan0.wifi;
-    delete config.wlan0.wifiPassword;
+    delete config[iface].wifi;
+    delete config[iface].wifiPassword;
     setConfig(config);
     const wpaSupplicant = `
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
@@ -145,13 +145,16 @@ slaac private
 
     Object.keys(config).forEach(iface => {
         const ifaceConfig = config[iface];
+        const dns = ifaceConfig.dns && ifaceConfig.dns.join(' ').trim() ? 
+            `static domain_name_servers=${ifaceConfig.dns.join(' ')}` :
+            '';
         interfaces += ifaceConfig.dhcp ? `
         ` : `
 interface ${iface}
 static ip_address=${ifaceConfig.ip4}/${new Netmask(ifaceConfig.ip4 + '/' + ifaceConfig.ip4subnet).bitmask}
 static routers=${ifaceConfig.ip4gateway}
-static domain_name_servers=${ifaceConfig.dns.join(' ')}
-static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
+${dns}
+# static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
         `;
     });
 
@@ -161,10 +164,14 @@ static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
     if (!stopping) {
         // fs.writeFileSync(interfacesFile, interfaces);
 
-        await sudo('ip addr flush wlan0');
-        await sudo('ip addr flush eth0');
-        await sudo('ifconfig wlan0 down');
-        await sudo('ifconfig wlan0 up');
+        const interfaces = await consoleGetInterfaces()
+        for (const k in interfaces) {
+            await sudo(`ip addr flush ${interfaces[k]}`);
+            if (interfaces[k].startsWith('w')) {
+                await sudo(`ifconfig ${interfaces[k]} down`);
+                await sudo(`ifconfig ${interfaces[k]} up`);
+            }
+        }
         await sudo('service dhcpcd restart');
     }
 };
@@ -213,6 +220,12 @@ const getWiFiConnections = async () => {
     return ssid ? [{ssid}] : [];
 };
 
+const consoleGetInterfaces = async () => 
+    (await justExec('ip a | grep -P \'^[0-9]+:\''))
+    .split('\n')
+    .map(iface => iface.match(/^[0-9]+: (.*?):/)[1])
+    .filter(iface => iface !== 'lo');
+
 const triggers = {
     interfaces: async (input, response) => {
         si.networkInterfaces(async result => {
@@ -223,13 +236,13 @@ const triggers = {
                     return interfaceItem;
                 }));
             } else {
-                const consoleInterfaces = (await justExec('ip a | grep -P \'^[0-9]+:\'')).
-                    split('\n').map(consoleInterface => ({
-                        iface: consoleInterface.match(/^[0-9]+: (.*?):/)[1],
+                const consoleInterfaces = (await consoleGetInterfaces()).map(consoleInterface => ({
+                        iface: consoleInterface,
                         ip4: '',
                         ip4subnet: '',
                         ip6: '',
                         ip6subnet: '',
+                        gateway: '',
                         dhcp: false,
                     }));
 
@@ -244,13 +257,17 @@ const triggers = {
                 result.forEach(interfaceItem => {
                     if (config[interfaceItem.iface]) {
                         interfaceItem.dhcp = config[interfaceItem.iface].dhcp;
-                        interfaceItem.dns = config[interfaceItem.iface].dns || [''];
-                        interfaceItem.ip4 = config[interfaceItem.iface].ip4 || '';
-                        interfaceItem.ip4subnet = config[interfaceItem.iface].ip4subnet || '';
-                        interfaceItem.ip6 = config[interfaceItem.iface].ip6 || '';
-                        interfaceItem.ip6subnet = config[interfaceItem.iface].ip6subnet || '';
-                        interfaceItem.gateway = config[interfaceItem.iface].ip4gateway || '';
                         interfaceItem.type = interfaceItem.iface[0] === 'w' ? 'wireless' : 'wired';
+                        if (!interfaceItem.dhcp) {
+                            interfaceItem.dns = config[interfaceItem.iface].dns || [''];
+                            interfaceItem.ip4 = config[interfaceItem.iface].ip4 || '';
+                            interfaceItem.ip4subnet = config[interfaceItem.iface].ip4subnet || '';
+                            // interfaceItem.ip6 = config[interfaceItem.iface].ip6 || '';
+                            // interfaceItem.ip6subnet = config[interfaceItem.iface].ip6subnet || '';
+                            interfaceItem.gateway = config[interfaceItem.iface].ip4gateway || '';
+                        } else {
+                            interfaceItem.dns = [];
+                        }
                     }
                 });
                 response(result);
@@ -289,7 +306,7 @@ const triggers = {
                 }
             });
         } else {
-            await wifiConnect(input.ssid, input.password);
+            await wifiConnect(input.ssid, input.password, input.iface);
 
             try {
                 response({result: (await justExec('iwgetid -r')) === 'input.ssid'});
@@ -310,7 +327,7 @@ const triggers = {
                 }
             });
         } else {
-            wifiDisconnect();
+            wifiDisconnect(input.iface);
             response({result: true});
         }
     },
@@ -328,8 +345,8 @@ const triggers = {
                     dhcp: false,
                     ip4: input.data.ip4,
                     ip4subnet: input.data.ip4subnet,
-                    ip6: input.data.ip6,
-                    ip6subnet: input.data.ip6subnet,
+                    // ip6: input.data.ip6,
+                    // ip6subnet: input.data.ip6subnet,
                     ip4gateway: input.data.gateway,
                     dns: input.data.dns,
                 };
