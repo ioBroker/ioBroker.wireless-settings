@@ -23,10 +23,9 @@ This adapter is used to anonymously collect the data on the central server for s
 - flash with green on update statistics only for according objects (by the update and on save)
 
 ## Preparation
-Edit /etc/sudoers (only visudo):
+Edit /etc/sudoers.d/iobroker (only visudo):
 ```
 # User privilege specification
-root    ALL=(ALL:ALL) ALL
 iobroker ALL=(root) NOPASSWD: /usr/sbin/iwlist scan
 iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush wlan0
 iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush eth0
