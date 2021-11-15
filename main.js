@@ -150,6 +150,9 @@ const getWiFi = async () => {
         if ((matches = line.match(/^ESSID:"(.*)"/))) {
             currentNetwork.ssid = matches[1];
         }
+        if ((matches = line.match(/Signal level=(.*) dBm/))) {
+            currentNetwork.quality = matches[1];
+        }
         if (line.match(/Encryption key:off/)) {
             currentNetwork.security.push('Open');
         }

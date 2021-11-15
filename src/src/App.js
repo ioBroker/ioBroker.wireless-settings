@@ -405,7 +405,7 @@ class App extends GenericApp {
                     {wifi.security.includes('Open')
                         ? <SignalWifi4BarIcon />
                         : <SignalWifi4BarLockIcon />}
-                    {wifi.ssid}
+                    {wifi.ssid} {wifi.quality} dBm
                 </Button>
                 {' '}
                 {connected
