@@ -20,7 +20,7 @@ import AddIcon from '@material-ui/icons/Add';
 import DeleteIcon from '@material-ui/icons/Delete';
 import {
     Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel, Grid, Container, IconButton,
-    Tooltip,
+    Tooltip, Switch,
 } from '@material-ui/core';
 import { withSnackbar } from 'notistack';
 
@@ -97,6 +97,8 @@ class App extends GenericApp {
             sudoDialogPassword: '',
             wifiDialog: false,
             wifiDialogPassword: '',
+            scanWifi: false,
+            scanWifiInterval: null,
         };
     }
 
@@ -403,7 +405,19 @@ class App extends GenericApp {
                     ? null
                     : <Grid item>
                         <div>
-                            <Button onClick={this.refreshWiFi}>Refresh</Button>
+                            <FormControlLabel control={<Switch checked={this.state.scanWifi} onChange={() => {
+                                if (!this.state.scanWifi) {
+                                    this.setState({
+                                        scanWifiInterval: setInterval(this.refreshWiFi, 4000)
+                                    });
+                                } else {
+                                    clearInterval(this.state.scanWifiInterval);
+                                    this.setState({
+                                        scanWifiInterval: null
+                                    });
+                                }
+                                this.setState({scanWifi: !this.state.scanWifi});
+                            }}/>} label={I18n.t('Wifi scan')} />
                         </div>
                         {this.renderWifi()}
                     </Grid>}
