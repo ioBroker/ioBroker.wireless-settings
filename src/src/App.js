@@ -99,6 +99,7 @@ class App extends GenericApp {
             wifiDialogPassword: '',
             scanWifi: false,
             scanWifiInterval: null,
+            pendingWifiInterval: null,
         };
     }
 
@@ -199,24 +200,46 @@ class App extends GenericApp {
     connect = (ssid, password) => {
         this.socket.sendTo(`network.${this.instance}`, 'wifiConnect', { ssid, password, iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
             .then(result => {
-                if (result.result) {
-                    this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
-                    this.refresh();
-                } else {
-                    this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
-                }
+                this.refreshWiFi();
+                const startTime = new Date();
+                this.setState({
+                    pendingWifiInterval: setInterval(() => {
+                        if (this.state.wifiConnections.length && ssid === this.state.wifiConnections[0].ssid) {
+                            this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
+                            clearInterval(this.state.pendingWifiInterval);
+                            this.setState({ pendingWifiInterval: null });
+                        } else if (new Date().getTime() - startTime.getTime() > 40 * 1000) {
+                            this.props.enqueueSnackbar(`${ssid} ${I18n.t('not connected')}`, { variant: 'error' });
+                            clearInterval(this.state.pendingWifiInterval);
+                            this.setState({ pendingWifiInterval: null });
+                        } else {
+                            this.refreshWiFi();
+                        }
+                    }, 1000),
+                });
             });
     }
 
     disconnect = () => {
         this.socket.sendTo(`network.${this.instance}`, 'wifiDisconnect', { iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
             .then(result => {
-                if (result.result) {
-                    this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' });
-                    this.refresh();
-                } else {
-                    this.props.enqueueSnackbar(JSON.stringify(result.error), { variant: 'error' });
-                }
+                this.refreshWiFi();
+                const startTime = new Date();
+                this.setState({
+                    pendingWifiInterval: setInterval(() => {
+                        if (this.state.wifiConnections.length === 0) {
+                            this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' });
+                            clearInterval(this.state.pendingWifiInterval);
+                            this.setState({ pendingWifiInterval: null });
+                        } else if (new Date().getTime() - startTime.getTime() > 40 * 1000) {
+                            this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'error' });
+                            clearInterval(this.state.pendingWifiInterval);
+                            this.setState({ pendingWifiInterval: null });
+                        } else {
+                            this.refreshWiFi();
+                        }
+                    }, 1000),
+                });
             });
     }
 
