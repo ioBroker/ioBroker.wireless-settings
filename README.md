@@ -25,7 +25,7 @@ This adapter is used to anonymously collect the data on the central server for s
 ## Preparation
 Edit /etc/sudoers.d/iobroker (use only `sudo visudo -f /etc/sudoers.d/iobroker`):
 ```
-# User privilege specification
+# At the very end of the file
 iobroker ALL=(root) NOPASSWD: /usr/sbin/iwlist scan
 iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush wlan0
 iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush eth0

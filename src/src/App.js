@@ -1,11 +1,26 @@
 import React from 'react';
 import { MuiThemeProvider, withStyles } from '@material-ui/core/styles';
+import { withSnackbar } from 'notistack';
+
 import AppBar from '@material-ui/core/AppBar';
 import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
-import GenericApp from '@iobroker/adapter-react/GenericApp';
-import Loader from '@iobroker/adapter-react/Components/Loader';
-import I18n from '@iobroker/adapter-react/i18n';
+import {
+    Button,
+    Checkbox,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    TextField,
+    FormControlLabel,
+    Grid,
+    IconButton,
+    Tooltip,
+    Switch,
+    LinearProgress,
+} from '@material-ui/core';
+
 import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
 import WifiIcon from '@material-ui/icons/Wifi';
 import SignalWifi1BarIcon from '@material-ui/icons/SignalWifi1Bar';
@@ -18,24 +33,28 @@ import SignalWifi4BarIcon from '@material-ui/icons/SignalWifi4Bar';
 import SignalWifi4BarLockIcon from '@material-ui/icons/SignalWifi4BarLock';
 import AddIcon from '@material-ui/icons/Add';
 import DeleteIcon from '@material-ui/icons/Delete';
-import {
-    Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, TextField, FormControlLabel, Grid, Container, IconButton,
-    Tooltip, Switch,
-} from '@material-ui/core';
-import { withSnackbar } from 'notistack';
+import IconCancel from '@material-ui/icons/Cancel';
+
+import GenericApp from '@iobroker/adapter-react/GenericApp';
+import Loader from '@iobroker/adapter-react/Components/Loader';
+import I18n from '@iobroker/adapter-react/i18n';
 
 const styles = () => ({
     root: {},
     tabContent: {
         padding: 10,
         overflow: 'auto',
-    },
-    tabContentIFrame: {
-        padding: 10,
-        overflow: 'auto',
+        height: 'calc(100% - 64px)',
     },
     tabContainer: {
         display: 'flex',
+    },
+    buttonIcon: {
+        marginLeft: 10,
+    },
+    gridItem: {
+        width: '50%',
+        maxWidth: 500,
     },
 });
 
@@ -45,10 +64,10 @@ const ipValidate = (ip, isMask) => {
     if (!matches) {
         result = false;
     } else {
-        result = !matches.slice(1).map(el => parseInt(el) >= 0 && parseInt(el) <= 255).includes(false);
+        result = !matches.slice(1).find(el => parseInt(el) < 0 || parseInt(el) > 255);
 
         if (isMask && result) {
-            result = (parseInt(matches[1]) * 256 ** 3 + parseInt(matches[2]) * 256 ** 2 + parseInt(matches[3]) * 256 + parseInt(matches[4])).toString(2).match(/^1+0+$/);
+            result = ((parseInt(matches[1]) << 24) | (parseInt(matches[2]) << 16) | (parseInt(matches[3]) << 8) | parseInt(matches[4])).toString(2).match(/^1+0+$/);
         }
     }
 
@@ -56,16 +75,18 @@ const ipValidate = (ip, isMask) => {
 };
 
 const getWiFiIcon = (open, quality) => {
+    const style = { marginRight: 8 };
+
     if (quality > -67) {
-        return open ? <SignalWifi4BarIcon /> : <SignalWifi4BarLockIcon />;
+        return open ? <SignalWifi4BarIcon style={style} /> : <SignalWifi4BarLockIcon style={style} />;
     } else if (quality > -70) {
-        return open ? <SignalWifi3BarIcon /> : <SignalWifi3BarLockIcon />;
+        return open ? <SignalWifi3BarIcon style={style} /> : <SignalWifi3BarLockIcon style={style} />;
     } else if (quality > -80) {
-        return open ? <SignalWifi2BarIcon /> : <SignalWifi2BarLockIcon />;
+        return open ? <SignalWifi2BarIcon style={style} /> : <SignalWifi2BarLockIcon style={style} />;
     } else {
-        return open ? <SignalWifi1BarIcon /> : <SignalWifi1BarLockIcon />;
-    };
-}
+        return open ? <SignalWifi1BarIcon style={style} /> : <SignalWifi1BarLockIcon style={style} />;
+    }
+};
 
 class App extends GenericApp {
     constructor(props) {
@@ -87,8 +108,21 @@ class App extends GenericApp {
 
         super(props, extendedProps);
 
-        this.state = {
-            interfaces: [],
+        this.pendingWifiInterval = null;
+        this.scanWifiInterval = null;
+    }
+
+    componentWillUnmount() {
+        this.pendingWifiInterval && clearInterval(this.pendingWifiInterval);
+        this.pendingWifiInterval = null;
+
+        this.scanWifiInterval && clearInterval(this.scanWifiInterval);
+        this.scanWifiInterval = null;
+    }
+
+    onConnectionReady() {
+        this.setState({
+            interfaces: null,
             interfacesChanged: [],
             wifi: [],
             dns: [],
@@ -98,29 +132,42 @@ class App extends GenericApp {
             wifiDialog: false,
             wifiDialogPassword: '',
             scanWifi: false,
-            scanWifiInterval: null,
-            pendingWifiInterval: null,
-        };
-    }
-
-    onConnectionReady() {
-        this.refresh();
+            processing: false,
+            firstRequest: 0,
+        }, () => this.refresh());
     }
 
     refreshWiFi = () => {
-        return this.socket.sendTo(`network.${this.instance}`, 'wifi', null)
+        let wifiConnectionsLocal = null;
+        return this.socket.sendTo(`network.${this.instance}`, 'wifiConnections', null)
+            .then(wifiConnections => {
+                wifiConnectionsLocal = wifiConnections;
+                this.setState({ wifiConnections });
+                return this.socket.sendTo(`network.${this.instance}`, 'wifi', null);
+            })
             .then(wifi => {
                 if (wifi.length) {
-                    wifi = wifi.filter(wifiNetwork => wifiNetwork.ssid.trim() !== '');
+                    wifi = wifi.filter(wifiNetwork => wifiNetwork.ssid.trim() !== '').sort((a, b) => {
+                        const connectedA = !!(wifiConnectionsLocal.length && a.ssid === wifiConnectionsLocal[0].ssid);
+                        const connectedB = !!(wifiConnectionsLocal.length && b.ssid === wifiConnectionsLocal[0].ssid);
+                        if (connectedA) {
+                            return -1;
+                        } else if (connectedB) {
+                            return 1;
+                        } else {
+                            return b.quality - a.quality;
+                        }
+                    });
                     this.setState({ wifi });
                 }
-                return this.socket.sendTo(`network.${this.instance}`, 'wifiConnections', null);
-            })
-            .then(wifiConnections => this.setState({ wifiConnections }));
+            });
     }
 
     refresh() {
-        this.socket.sendTo(`network.${this.instance}`, 'interfaces', null)
+        if (this.state.firstRequest === 0) {
+            this.setState({ firstRequest: 1 });
+        }
+        return this.socket.sendTo(`network.${this.instance}`, 'interfaces', null)
             .then(interfaces => {
                 interfaces.sort((item1, item2) => (item1.mac > item2.mac ? -1 : 1));
                 interfaces.sort((item1, item2) => (item1.type === 'wired' ? -1 : 1));
@@ -136,18 +183,10 @@ class App extends GenericApp {
 
                 this.setState({ interfaces, interfacesChanged: JSON.parse(JSON.stringify(interfaces)) });
 
-                return this.socket.sendTo(`network.${this.instance}`, 'wifi', null);
+                return this.refreshWiFi();
             })
-            .then(wifi => {
-                wifi = wifi.filter(wifiNetwork => wifiNetwork.ssid.trim() !== '');
-                this.setState({ wifi });
-                return this.socket.sendTo(`network.${this.instance}`, 'dns', null);
-            })
-            .then(dns => {
-                this.setState({ dns });
-                return this.socket.sendTo(`network.${this.instance}`, 'wifiConnections', null);
-            })
-            .then(wifiConnections => this.setState({ wifiConnections }));
+            .then(() => this.socket.sendTo(`network.${this.instance}`, 'dns', null))
+            .then(dns => this.setState({ dns, firstRequest: 2 }));
     }
 
     setInterfaceParam = (index, param, value) => {
@@ -179,11 +218,13 @@ class App extends GenericApp {
     }
 
     sendData = (index, password) => {
+        this.setState({ processing: true });
         this.socket.sendTo(`network.${this.instance}`, 'changeInterface', {
             rootPassword: password,
             data: this.state.interfacesChanged[index],
         })
             .then(result => {
+                this.setState({ processing: false });
                 if (result) {
                     this.props.enqueueSnackbar(I18n.t('Interface updated'), { variant: 'success' });
                     this.refresh();
@@ -198,48 +239,55 @@ class App extends GenericApp {
     }
 
     connect = (ssid, password) => {
-        this.socket.sendTo(`network.${this.instance}`, 'wifiConnect', { ssid, password, iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
-            .then(result => {
+        this.setState({ processing: true });
+        return this.socket.sendTo(`network.${this.instance}`, 'wifiConnect', { ssid, password, iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
+            .then(() => {
                 this.refreshWiFi();
-                const startTime = new Date();
-                this.setState({
-                    pendingWifiInterval: setInterval(() => {
-                        if (this.state.wifiConnections.length && ssid === this.state.wifiConnections[0].ssid) {
-                            this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
-                            clearInterval(this.state.pendingWifiInterval);
-                            this.setState({ pendingWifiInterval: null });
-                        } else if (new Date().getTime() - startTime.getTime() > 40 * 1000) {
-                            this.props.enqueueSnackbar(`${ssid} ${I18n.t('not connected')}`, { variant: 'error' });
-                            clearInterval(this.state.pendingWifiInterval);
-                            this.setState({ pendingWifiInterval: null });
-                        } else {
-                            this.refreshWiFi();
-                        }
-                    }, 1000),
-                });
+                const startTime = Date.now();
+
+                this.pendingWifiInterval = setInterval(() => {
+                    if (this.state.wifiConnections.length && ssid === this.state.wifiConnections[0].ssid) {
+                        this.props.enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
+                        clearInterval(this.pendingWifiInterval);
+                        this.pendingWifiInterval = null;
+                        this.refresh()
+                            .then(() => this.setState({ processing: false }));
+                    } else if (Date.now() - startTime > 40 * 1000) {
+                        this.props.enqueueSnackbar(`${ssid} ${I18n.t('not connected')}`, { variant: 'error' });
+                        clearInterval(this.pendingWifiInterval);
+                        this.pendingWifiInterval = null;
+                        this.refresh()
+                            .then(() => this.setState({ processing: false }));
+                    } else {
+                        this.refreshWiFi();
+                    }
+                }, 1000);
             });
     }
 
     disconnect = () => {
-        this.socket.sendTo(`network.${this.instance}`, 'wifiDisconnect', { iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
-            .then(result => {
+        this.setState({ processing: true });
+        return this.socket.sendTo(`network.${this.instance}`, 'wifiDisconnect', { iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
+            .then(() => {
                 this.refreshWiFi();
-                const startTime = new Date();
-                this.setState({
-                    pendingWifiInterval: setInterval(() => {
-                        if (this.state.wifiConnections.length === 0) {
-                            this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' });
-                            clearInterval(this.state.pendingWifiInterval);
-                            this.setState({ pendingWifiInterval: null });
-                        } else if (new Date().getTime() - startTime.getTime() > 40 * 1000) {
-                            this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'error' });
-                            clearInterval(this.state.pendingWifiInterval);
-                            this.setState({ pendingWifiInterval: null });
-                        } else {
-                            this.refreshWiFi();
-                        }
-                    }, 1000),
-                });
+                const startTime = Date.now();
+                this.pendingWifiInterval = setInterval(() => {
+                    if (this.state.wifiConnections.length === 0) {
+                        this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'success' });
+                        clearInterval(this.pendingWifiInterval);
+                        this.pendingWifiInterval = null;
+                        this.refresh()
+                            .then(() => this.setState({ processing: false }));
+                    } else if (Date.now() - startTime > 40 * 1000) {
+                        this.props.enqueueSnackbar(I18n.t('Wi-fi disconnected'), { variant: 'error' });
+                        clearInterval(this.pendingWifiInterval);
+                        this.pendingWifiInterval = null;
+                        this.refresh()
+                            .then(() => this.setState({ processing: false }));
+                    } else {
+                        this.refreshWiFi();
+                    }
+                }, 1000);
             });
     }
 
@@ -262,16 +310,8 @@ class App extends GenericApp {
             <DialogActions>
                 <Button
                     variant="contained"
-                    onClick={() => this.setState({
-                        sudoDialog: false,
-                        sudoDialogPassword: '',
-                    })}
-                >
-                    {I18n.t('Cancel')}
-                </Button>
-                <Button
-                    variant="contained"
                     color="primary"
+                    disabled={!this.state.sudoDialogPassword}
                     onClick={() => {
                         this.sendData(this.state.sudoDialog, this.state.sudoDialogPassword);
                         this.setState({
@@ -281,6 +321,16 @@ class App extends GenericApp {
                     }}
                 >
                     {I18n.t('Send')}
+                </Button>
+                <Button
+                    variant="contained"
+                    onClick={() => this.setState({
+                        sudoDialog: false,
+                        sudoDialogPassword: '',
+                    })}
+                    startIcon={<IconCancel />}
+                >
+                    {I18n.t('Cancel')}
                 </Button>
             </DialogActions>
         </Dialog>;
@@ -315,6 +365,7 @@ class App extends GenericApp {
                 <Button
                     variant="contained"
                     color="primary"
+                    disabled={!this.state.wifiDialogPassword}
                     onClick={() => {
                         this.connect(this.state.wifiDialog, this.state.wifiDialogPassword);
                         this.setState({
@@ -329,6 +380,19 @@ class App extends GenericApp {
         </Dialog>;
     }
 
+    startsWifiScan(enabled, cb) {
+        if (enabled === true) {
+            this.scanWifiInterval = this.scanWifiInterval || setInterval(this.refreshWiFi, 4000);
+            this.setState({ scanWifi: true }, () => cb && cb());
+        } else if (enabled === false) {
+            this.scanWifiInterval && clearInterval(this.scanWifiInterval);
+            this.scanWifiInterval = null;
+            this.setState({ scanWifi: false }, () => cb && cb());
+        } else {
+            this.startsWifiScan(!this.state.scanWifi, cb);
+        }
+    }
+
     renderInterface(interfaceItem, i) {
         let buttonDisabled = false;
 
@@ -338,57 +402,49 @@ class App extends GenericApp {
 
         return <>
             <Grid container>
-                <Grid item>
-                    <div>
-                        <FormControlLabel
-                            control={<Checkbox
-                                checked={interfaceItem.dhcp}
-                                onChange={e => this.setInterfaceParam(i, 'dhcp', e.target.checked)}
-                            />}
-                            label={I18n.t('DHCP')}
-                        />
-                    </div>
+                <Grid item className={this.props.classes.gridItem}>
+                    <FormControlLabel
+                        control={<Checkbox
+                            disabled={this.state.processing}
+                            checked={interfaceItem.dhcp}
+                            onChange={e => this.setInterfaceParam(i, 'dhcp', e.target.checked)}
+                        />}
+                        label={I18n.t('DHCP')}
+                    />
                     <>
                         <h4>IPv4</h4>
-                        <div>
-                            <TextField
-                                value={interfaceItem.ip4}
-                                label={I18n.t('IPv4')}
-                                onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)}
-                                disabled={interfaceItem.dhcp}
-                            />
-                        </div>
-                        <div>
-                            <TextField
-                                value={interfaceItem.ip4subnet}
-                                label={I18n.t('IPv4 netmask')}
-                                onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)}
-                                disabled={interfaceItem.dhcp}
-                            />
-                        </div>
-                        <div>
-                            <TextField
-                                value={interfaceItem.gateway}
-                                label={I18n.t('Gateway')}
-                                onChange={e => this.setInterfaceParam(i, 'gateway', e.target.value)}
-                                disabled={interfaceItem.dhcp}
-                            />
-                        </div>
+                        <TextField
+                            value={interfaceItem.ip4}
+                            label={I18n.t('IPv4')}
+                            onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)}
+                            disabled={interfaceItem.dhcp}
+                        />
+                        <br />
+                        <TextField
+                            value={interfaceItem.ip4subnet}
+                            label={I18n.t('IPv4 netmask')}
+                            onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)}
+                            disabled={interfaceItem.dhcp}
+                        />
+                        <br />
+                        <TextField
+                            value={interfaceItem.gateway}
+                            label={I18n.t('Gateway')}
+                            onChange={e => this.setInterfaceParam(i, 'gateway', e.target.value)}
+                            disabled={interfaceItem.dhcp}
+                        />
                         <h4>IPv6</h4>
-                        <div>
-                            <TextField
-                                value={interfaceItem.ip6}
-                                label={I18n.t('IPv6')}
-                                disabled
-                            />
-                        </div>
-                        <div>
-                            <TextField
-                                value={interfaceItem.ip6subnet}
-                                label={I18n.t('IPv6 netmask')}
-                                disabled
-                            />
-                        </div>
+                        <TextField
+                            value={interfaceItem.ip6}
+                            label={I18n.t('IPv6')}
+                            disabled
+                        />
+                        <br />
+                        <TextField
+                            value={interfaceItem.ip6subnet}
+                            label={I18n.t('IPv6 netmask')}
+                            disabled
+                        />
                         <h4>DNS</h4>
                     </>
                     {
@@ -404,53 +460,43 @@ class App extends GenericApp {
                             </IconButton> : null}
                         </div>)
                     }
-                    <div>
-                        {
-                            !interfaceItem.dhcp ? 
+                    {
+                        !interfaceItem.dhcp ?
                             <IconButton onClick={() => this.addDns(i)}>
                                 <AddIcon />
                             </IconButton>
                             : null
-                        }
-                    </div>
-                    <div>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            disabled={buttonDisabled}
-                            onClick={() => this.sendData(i, '')}
-                        >
-                            {I18n.t('Save')}
-                        </Button>
-                    </div>
+                    }
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        disabled={buttonDisabled || this.state.processing}
+                        onClick={() => this.sendData(i, '')}
+                    >
+                        {I18n.t('Save')}
+                    </Button>
                 </Grid>
                 {interfaceItem.type === 'wired'
                     ? null
-                    : <Grid item>
-                        <div>
-                            <FormControlLabel control={<Switch checked={this.state.scanWifi} onChange={() => {
-                                if (!this.state.scanWifi) {
-                                    this.setState({
-                                        scanWifiInterval: setInterval(this.refreshWiFi, 4000)
-                                    });
-                                } else {
-                                    clearInterval(this.state.scanWifiInterval);
-                                    this.setState({
-                                        scanWifiInterval: null
-                                    });
-                                }
-                                this.setState({scanWifi: !this.state.scanWifi});
-                            }}/>} label={I18n.t('Wifi scan')} />
-                        </div>
+                    : <Grid item className={this.props.classes.gridItem}>
+                        {this.state.processing || this.state.firstRequest < 2 ? <LinearProgress /> : null}
+                        <FormControlLabel
+                            control={<Switch
+                                disabled={this.state.processing}
+                                checked={this.state.scanWifi}
+                                onChange={() => this.startsWifiScan()}
+                            />}
+                            label={I18n.t('Wifi scan')}
+                        />
                         {this.renderWifi()}
                     </Grid>}
             </Grid>
-            <pre>
-                {/* {interfaceItem.type === 'wireless'
+            {/*<pre>
+                 {interfaceItem.type === 'wireless'
                     ? JSON.stringify(this.state.wifi, null, 2) + JSON.stringify(this.state.wifiConnections, null, 2)
-                    : null} */}
-                {/* {JSON.stringify(interfaceItem, null, 2)} */}
-            </pre>
+                    : null}
+                 {JSON.stringify(interfaceItem, null, 2)}
+            </pre>*/}
         </>;
     }
 
@@ -461,63 +507,75 @@ class App extends GenericApp {
                 <Button
                     variant={connected ? 'contained' : undefined}
                     color={connected ? 'primary' : undefined}
-                    disabled={connected}
-                    onClick={() => {
+                    disabled={connected || this.state.processing}
+                    title={connected ? '' : I18n.t('Click to connect')}
+                    onClick={() => this.startsWifiScan(false, () => {
                         if (wifi.security.includes('Open')) {
                             this.connect(wifi.ssid, '');
                         } else {
                             this.setState({ wifiDialog: wifi.ssid });
                         }
-                    }}
+                    })}
                 >
                     <Tooltip title={wifi.quality + ' dBm'}>
                         {getWiFiIcon(wifi.security.includes('Open'), parseInt(wifi.quality))}
                     </Tooltip>
-                    &nbsp;
                     {wifi.ssid}
-                    {' '}
                 </Button>
-                {' '}
                 {connected
-                    ? <>
-                        <Button onClick={this.disconnect}>{I18n.t('Disconnect')}</Button>
-                    </>
-                    : ''}
+                    ? <Button
+                        onClick={() => {
+                            this.startsWifiScan(false, () =>
+                                this.disconnect());
+                        }}
+                        variant="outlined"
+                        className={this.props.classes.buttonIcon}
+                        disabled={this.state.processing}
+                    >
+                        {I18n.t('Disconnect')}
+                    </Button>
+                    : null}
             </div>;
         });
     }
 
     render() {
-        if (!this.state.loaded || !this.state.interfaces.length) {
+        if (!this.state.loaded) {
             return <MuiThemeProvider theme={this.state.theme}>
                 <Loader theme={this.state.themeType} />
             </MuiThemeProvider>;
         }
+        if (!this.state.interfaces) {
+            return <MuiThemeProvider theme={this.state.theme}>
+                <LinearProgress />
+            </MuiThemeProvider>;
+        }
 
         return <MuiThemeProvider theme={this.state.theme}>
-            <div className="App" style={{ background: this.state.themeType === 'dark' ? '#000' : '#FFF' }}>
-                <Container>
-                    <AppBar position="static">
-                        <Tabs value={this.getSelectedTab()} onChange={(e, index) => this.selectTab(index, index)} variant="scrollable">
-                            {this.state.interfaces.map((interfaceItem, i) => <Tab
-                                key={i}
-                                label={<div className={this.props.classes.tabContainer}>
-                                    {interfaceItem.type === 'wired' ? <SettingsInputComponentIcon /> : <WifiIcon />}
-                                    &nbsp;
-                                    {interfaceItem.iface}
-                                </div>}
-                            />)}
-                        </Tabs>
-                    </AppBar>
+            <div className="App" style={{ background: this.state.themeType === 'dark' ? '#000' : '#FFF', color: this.state.themeType === 'dark' ? '#EEE' : '#111' }}>
+                <AppBar position="static">
+                    <Tabs
+                        value={this.getSelectedTab()}
+                        onChange={(e, index) => this.selectTab(index, index)}
+                        variant="scrollable"
+                    >
+                        {this.state.interfaces.map((interfaceItem, i) => <Tab
+                            key={i}
+                            label={<div className={this.props.classes.tabContainer}>
+                                {interfaceItem.type === 'wired' ? <SettingsInputComponentIcon className={this.props.classes.buttonIcon} /> : <WifiIcon className={this.props.classes.buttonIcon} />}
+                                {interfaceItem.iface}
+                            </div>}
+                        />)}
+                    </Tabs>
+                    {!this.state.interfaces.length ? I18n.t('No network interfaces detected!') : null}
+                </AppBar>
 
-                    <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>
+                <div className={this.props.classes.tabContent}>
+                    {this.renderInterface(this.state.interfacesChanged[this.getSelectedTab()], this.getSelectedTab())}
+                </div>
 
-                        {this.renderInterface(this.state.interfacesChanged[this.getSelectedTab()], this.getSelectedTab())}
-
-                    </div>
-                    {this.renderRootDialog()}
-                    {this.renderWifiDialog()}
-                </Container>
+                {this.renderRootDialog()}
+                {this.renderWifiDialog()}
             </div>
         </MuiThemeProvider>;
     }
