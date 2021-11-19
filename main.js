@@ -111,7 +111,7 @@ network={
     await writeInterfaces(true);
 };
 
-const wifiDisconnect = async (iface) => {
+const wifiDisconnect = async iface => {
     const config = getConfig();
     delete config[iface].wifi;
     delete config[iface].wifiPassword;
@@ -145,9 +145,9 @@ slaac private
 
     Object.keys(config).forEach(iface => {
         const ifaceConfig = config[iface];
-        const dns = ifaceConfig.dns && ifaceConfig.dns.join(' ').trim() ? 
-            `static domain_name_servers=${ifaceConfig.dns.join(' ')}` :
-            '';
+        const dns = ifaceConfig.dns && ifaceConfig.dns.join(' ').trim() ?
+            `static domain_name_servers=${ifaceConfig.dns.join(' ')}` : '';
+
         interfaces += ifaceConfig.dhcp ? `
         ` : `
 interface ${iface}
@@ -164,7 +164,7 @@ ${dns}
     if (!stopping) {
         // fs.writeFileSync(interfacesFile, interfaces);
 
-        const interfaces = await consoleGetInterfaces()
+        const interfaces = await consoleGetInterfaces();
         for (const k in interfaces) {
             await sudo(`ip addr flush ${interfaces[k]}`);
             if (interfaces[k].startsWith('w')) {
@@ -220,11 +220,11 @@ const getWiFiConnections = async () => {
     return ssid ? [{ssid}] : [];
 };
 
-const consoleGetInterfaces = async () => 
+const consoleGetInterfaces = async () =>
     (await justExec('ip a | grep -P \'^[0-9]+:\''))
-    .split('\n')
-    .map(iface => iface.match(/^[0-9]+: (.*?):/)[1])
-    .filter(iface => iface !== 'lo');
+        .split('\n')
+        .map(iface => iface.match(/^[0-9]+: (.*?):/)[1])
+        .filter(iface => iface !== 'lo');
 
 const triggers = {
     interfaces: async (input, response) => {
@@ -237,14 +237,14 @@ const triggers = {
                 }));
             } else {
                 const consoleInterfaces = (await consoleGetInterfaces()).map(consoleInterface => ({
-                        iface: consoleInterface,
-                        ip4: '',
-                        ip4subnet: '',
-                        ip6: '',
-                        ip6subnet: '',
-                        gateway: '',
-                        dhcp: false,
-                    }));
+                    iface: consoleInterface,
+                    ip4: '',
+                    ip4subnet: '',
+                    ip6: '',
+                    ip6subnet: '',
+                    gateway: '',
+                    dhcp: false,
+                }));
 
                 consoleInterfaces.forEach(consoleInterface => {
                     if (!result.find(interfaceItem => interfaceItem.iface === consoleInterface.iface)) {
@@ -284,7 +284,7 @@ const triggers = {
     dns: (input, response) => {
         response(dns.getServers());
     },
-    changeDns: (input, response) => {
+    changeDns: (input/*, response*/) => {
         console.log(input.data);
     },
     wifiConnections: async (input, response) => {

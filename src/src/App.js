@@ -56,18 +56,25 @@ const styles = () => ({
         width: '50%',
         maxWidth: 500,
     },
+    input: {
+        display: 'block',
+        marginBottom: 10,
+    },
 });
 
 const ipValidate = (ip, isMask) => {
     let result;
-    const matches = ip.match(/^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$/);
+    const matches = (ip || '').match(/^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$/);
     if (!matches) {
         result = false;
     } else {
         result = !matches.slice(1).find(el => parseInt(el) < 0 || parseInt(el) > 255);
 
         if (isMask && result) {
-            result = ((parseInt(matches[1]) << 24) | (parseInt(matches[2]) << 16) | (parseInt(matches[3]) << 8) | parseInt(matches[4])).toString(2).match(/^1+0+$/);
+            result = (0x100000000 + (parseInt(matches[1], 10) << 24) + (parseInt(matches[2], 10) << 16) + (parseInt(matches[3], 10) << 8) + parseInt(matches[4], 10)).toString(2).match(/^1+0+$/);
+            if (result && !parseInt(matches[1], 10)) {
+                result = false;
+            }
         }
     }
 
@@ -190,9 +197,9 @@ class App extends GenericApp {
     }
 
     setInterfaceParam = (index, param, value) => {
-        const interfaces = JSON.parse(JSON.stringify(this.state.interfacesChanged));
-        interfaces[index][param] = value;
-        this.setState({ interfacesChanged: interfaces });
+        const interfacesChanged = JSON.parse(JSON.stringify(this.state.interfacesChanged));
+        interfacesChanged[index][param] = value;
+        this.setState({ interfacesChanged });
     }
 
     setDns = (interfaceIndex, dnsIndex, value) => {
@@ -214,7 +221,7 @@ class App extends GenericApp {
     }
 
     getSelectedTab() {
-        return this.state.selectedTab ? this.state.selectedTab : 0;
+        return this.state.selectedTab ? this.state.selectedTab : '0';
     }
 
     sendData = (index, password) => {
@@ -394,10 +401,28 @@ class App extends GenericApp {
     }
 
     renderInterface(interfaceItem, i) {
-        let buttonDisabled = false;
+        let saveEnabled;
+        let ipValid = true;
+        let maskValid = true;
+        let gatewayValid = true;
 
         if (!interfaceItem.dhcp) {
-            buttonDisabled = !ipValidate(interfaceItem.ip4) || !ipValidate(interfaceItem.ip4subnet, true);
+            ipValid = ipValidate(interfaceItem.ip4);
+            maskValid = ipValidate(interfaceItem.ip4subnet, true);
+            gatewayValid = ipValidate(interfaceItem.gateway);
+
+            saveEnabled = ipValid && maskValid && gatewayValid;
+            if (saveEnabled) {
+                if (interfaceItem.dhcp !== this.state.interfaces[i].dhcp) {
+                    saveEnabled = true;
+                } else {
+                    saveEnabled = interfaceItem.ip4 !== this.state.interfaces[i].ip4 ||
+                        interfaceItem.ip4subnet !== this.state.interfaces[i].ip4subnet ||
+                        interfaceItem.gateway !== this.state.interfaces[i].gateway;
+                }
+            }
+        } else {
+            saveEnabled = interfaceItem.dhcp !== this.state.interfaces[i].dhcp;
         }
 
         return <>
@@ -407,39 +432,53 @@ class App extends GenericApp {
                         control={<Checkbox
                             disabled={this.state.processing}
                             checked={interfaceItem.dhcp}
-                            onChange={e => this.setInterfaceParam(i, 'dhcp', e.target.checked)}
+                            onChange={e => {
+                                if (e.target.checked) {
+                                    this.setInterfaceParam(i, 'ip4', this.state.interfaces[i].ip4);
+                                    this.setInterfaceParam(i, 'ip4subnet', this.state.interfaces[i].ip4subnet);
+                                    this.setInterfaceParam(i, 'gateway', this.state.interfaces[i].gateway);
+                                }
+                                this.setInterfaceParam(i, 'dhcp', e.target.checked);
+                            }}
                         />}
                         label={I18n.t('DHCP')}
                     />
                     <>
                         <h4>IPv4</h4>
                         <TextField
+                            className={this.props.classes.input}
                             value={interfaceItem.ip4}
+                            error={!ipValid}
                             label={I18n.t('IPv4')}
                             onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)}
                             disabled={interfaceItem.dhcp}
+                            helperText={!ipValid ? I18n.t('Invalid IP address') : ''}
                         />
-                        <br />
                         <TextField
+                            className={this.props.classes.input}
                             value={interfaceItem.ip4subnet}
+                            error={!maskValid}
                             label={I18n.t('IPv4 netmask')}
                             onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)}
                             disabled={interfaceItem.dhcp}
+                            helperText={!maskValid ? I18n.t('Invalid netmask') : ''}
                         />
-                        <br />
                         <TextField
+                            className={this.props.classes.input}
                             value={interfaceItem.gateway}
-                            label={I18n.t('Gateway')}
+                            error={!gatewayValid}
+                            label={I18n.t('Default gateway')}
                             onChange={e => this.setInterfaceParam(i, 'gateway', e.target.value)}
                             disabled={interfaceItem.dhcp}
+                            helperText={!gatewayValid ? I18n.t('Invalid default gateway') : ''}
                         />
                         <h4>IPv6</h4>
                         <TextField
+                            className={this.props.classes.input}
                             value={interfaceItem.ip6}
                             label={I18n.t('IPv6')}
                             disabled
                         />
-                        <br />
                         <TextField
                             value={interfaceItem.ip6subnet}
                             label={I18n.t('IPv6 netmask')}
@@ -462,15 +501,16 @@ class App extends GenericApp {
                     }
                     {
                         !interfaceItem.dhcp ?
-                            <IconButton onClick={() => this.addDns(i)}>
+                            <IconButton onClick={() => this.addDns(i)} title={I18n.t('Add DNS record')}>
                                 <AddIcon />
                             </IconButton>
                             : null
                     }
+                    { !interfaceItem.dhcp ? <br /> : null }
                     <Button
                         variant="contained"
                         color="primary"
-                        disabled={buttonDisabled || this.state.processing}
+                        disabled={!saveEnabled || this.state.processing}
                         onClick={() => this.sendData(i, '')}
                     >
                         {I18n.t('Save')}
@@ -560,6 +600,7 @@ class App extends GenericApp {
                         variant="scrollable"
                     >
                         {this.state.interfaces.map((interfaceItem, i) => <Tab
+                            value={i.toString()}
                             key={i}
                             label={<div className={this.props.classes.tabContainer}>
                                 {interfaceItem.type === 'wired' ? <SettingsInputComponentIcon className={this.props.classes.buttonIcon} /> : <WifiIcon className={this.props.classes.buttonIcon} />}
