@@ -430,7 +430,7 @@ class App extends GenericApp {
                 <Grid item className={this.props.classes.gridItem}>
                     <FormControlLabel
                         control={<Checkbox
-                            disabled={this.state.processing}
+                            disabled={this.state.processing || !interfaceItem.editable}
                             checked={interfaceItem.dhcp}
                             onChange={e => {
                                 if (e.target.checked) {
@@ -451,7 +451,7 @@ class App extends GenericApp {
                             error={!ipValid}
                             label={I18n.t('IPv4')}
                             onChange={e => this.setInterfaceParam(i, 'ip4', e.target.value)}
-                            disabled={interfaceItem.dhcp}
+                            disabled={interfaceItem.dhcp || !interfaceItem.editable}
                             helperText={!ipValid ? I18n.t('Invalid IP address') : ''}
                         />
                         <TextField
@@ -460,7 +460,7 @@ class App extends GenericApp {
                             error={!maskValid}
                             label={I18n.t('IPv4 netmask')}
                             onChange={e => this.setInterfaceParam(i, 'ip4subnet', e.target.value)}
-                            disabled={interfaceItem.dhcp}
+                            disabled={interfaceItem.dhcp || !interfaceItem.editable}
                             helperText={!maskValid ? I18n.t('Invalid netmask') : ''}
                         />
                         <TextField
@@ -469,7 +469,7 @@ class App extends GenericApp {
                             error={!gatewayValid}
                             label={I18n.t('Default gateway')}
                             onChange={e => this.setInterfaceParam(i, 'gateway', e.target.value)}
-                            disabled={interfaceItem.dhcp}
+                            disabled={interfaceItem.dhcp || !interfaceItem.editable}
                             helperText={!gatewayValid ? I18n.t('Invalid default gateway') : ''}
                         />
                         <h4>IPv6</h4>
@@ -492,29 +492,31 @@ class App extends GenericApp {
                                 value={dnsRecord}
                                 label={I18n.t('DNS record')}
                                 onChange={e => this.setDns(i, dnsI, e.target.value)}
-                                disabled={interfaceItem.dhcp}
+                                disabled={interfaceItem.dhcp || !interfaceItem.editable}
                             />
-                            {!interfaceItem.dhcp && interfaceItem.dns && interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>
+                            {interfaceItem.editable && !interfaceItem.dhcp && interfaceItem.dns && interfaceItem.dns.length > 1 ? <IconButton onClick={() => this.removeDns(i, dnsI)}>
                                 <DeleteIcon />
                             </IconButton> : null}
                         </div>)
                     }
                     {
-                        !interfaceItem.dhcp ?
+                        interfaceItem.editable && !interfaceItem.dhcp ?
                             <IconButton onClick={() => this.addDns(i)} title={I18n.t('Add DNS record')}>
                                 <AddIcon />
                             </IconButton>
                             : null
                     }
-                    { !interfaceItem.dhcp ? <br /> : null }
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        disabled={!saveEnabled || this.state.processing}
-                        onClick={() => this.sendData(i, '')}
-                    >
-                        {I18n.t('Save')}
-                    </Button>
+                    { interfaceItem.editable && !interfaceItem.dhcp ? <br /> : null }
+                    {interfaceItem.editable ?
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            disabled={!saveEnabled || this.state.processing}
+                            onClick={() => this.sendData(i, '')}
+                        >
+                            {I18n.t('Save')}
+                        </Button> : null
+                    }
                 </Grid>
                 {interfaceItem.type === 'wired'
                     ? null

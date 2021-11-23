@@ -27,12 +27,18 @@ Edit /etc/sudoers.d/iobroker (use only `sudo visudo -f /etc/sudoers.d/iobroker`)
 ```
 # At the very end of the file
 iobroker ALL=(root) NOPASSWD: /usr/sbin/iwlist scan
+iobroker ALL=(root) NOPASSWD: /sbin/iwlist scan
 iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush wlan0
+iobroker ALL=(root) NOPASSWD: /sbin/ip addr flush wlan0
 iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush eth0
+iobroker ALL=(root) NOPASSWD: /sbin/ip addr flush eth0
 iobroker ALL=(root) NOPASSWD: /usr/sbin/ifconfig wlan0 down
+iobroker ALL=(root) NOPASSWD: /sbin/ifconfig wlan0 down
 iobroker ALL=(root) NOPASSWD: /usr/sbin/ifconfig wlan0 up
+iobroker ALL=(root) NOPASSWD: /sbin/ifconfig wlan0 up
 iobroker ALL=(root) NOPASSWD: /usr/sbin/service dhcpcd restart
 iobroker ALL=(root) NOPASSWD: /usr/bin/cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak
+iobroker ALL=(root) NOPASSWD: /bin/cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak
 iobroker ALL=(root) NOPASSWD: /usr/bin/tee /etc/wpa_supplicant/wpa_supplicant.conf
 iobroker ALL=(root) NOPASSWD: /usr/bin/tee /etc/dhcpcd.conf
 ```

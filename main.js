@@ -12,7 +12,6 @@ const adapterName = require('./package.json').name.split('.').pop();
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const configFile = __dirname + '/data/network.json';
-const configTemplateFile = __dirname + '/data/network.template.json';
 
 let stopping = false;
 let cmdRunning = false;
@@ -63,9 +62,6 @@ const getConfig = () => {
 };
 
 const setConfig = config => {
-    if (!fs.existsSync(configFile)) {
-        fs.copyFileSync(configTemplateFile, configFile);
-    }
     fs.writeFileSync(configFile, JSON.stringify(config, null, 4));
 };
 
@@ -125,7 +121,7 @@ country=RU
     }
 };
 
-const writeInterfaces = async wifiOnly => {
+const writeInterfaces = async () => {
     const config = getConfig();
     let interfaces = `
 hostname
@@ -155,20 +151,22 @@ ${dns}
     });
 
     console.log(interfaces);
-    await justExec(`echo ${argumentEscape(interfaces)} | sudo tee /etc/dhcpcd.conf`);
+    if (fs.existsSync('/etc/dhcpcd.conf')) {
+        await justExec(`echo ${argumentEscape(interfaces)} | sudo tee /etc/dhcpcd.conf`);
 
-    if (!stopping) {
-        // fs.writeFileSync(interfacesFile, interfaces);
+        if (!stopping) {
+            // fs.writeFileSync(interfacesFile, interfaces);
 
-        const interfaces = await consoleGetInterfaces();
-        for (const k in interfaces) {
-            await sudo(`ip addr flush ${interfaces[k]}`);
-            if (interfaces[k].startsWith('w')) {
-                await sudo(`ifconfig ${interfaces[k]} down`);
-                await sudo(`ifconfig ${interfaces[k]} up`);
+            const interfaces = await consoleGetInterfaces();
+            for (const k in interfaces) {
+                await sudo(`ip addr flush ${interfaces[k]}`);
+                if (interfaces[k].startsWith('w')) {
+                    await sudo(`ifconfig ${interfaces[k]} down`);
+                    await sudo(`ifconfig ${interfaces[k]} up`);
+                }
             }
+            await sudo('service dhcpcd restart');
         }
-        await sudo('service dhcpcd restart');
     }
 };
 
@@ -242,6 +240,8 @@ const triggers = {
                     dhcp: false,
                 }));
 
+                const editable = fs.existsSync('/etc/dhcpcd.conf');
+
                 consoleInterfaces.forEach(consoleInterface => {
                     if (!result.find(interfaceItem => interfaceItem.iface === consoleInterface.iface)) {
                         result.push(consoleInterface);
@@ -265,7 +265,9 @@ const triggers = {
                             interfaceItem.dns = [];
                         }
                     }
+                    interfaceItem.editable = editable;
                 });
+
                 response(result);
             }
         });
@@ -378,6 +380,7 @@ function startAdapter(options) {
         },
         unload: callback => {
             stopping = true;
+            adapter.setState('info.connection', false, true);
             waitForEnd(timeout => {
                 timeout && adapter.log.warn('Timeout by waiting of command: ' + cmdRunning);
                 callback && callback();
@@ -400,24 +403,33 @@ function startAdapter(options) {
 }
 
 async function main() {
-    if (!fs.existsSync('/etc/dhcpcd.conf.bak')) {
+    if (!fs.existsSync('/etc/dhcpcd.conf.bak') && fs.existsSync('/etc/dhcpcd.conf')) {
         await sudo('cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak');
     }
+
+    if (fs.existsSync('/etc/dhcpcd.conf') || fs.existsSync('/etc/wpa_supplicant/wpa_supplicant.conf')) {
+        adapter.setState('info.connection', true, true);
+    }
+
     const interfaces = await consoleGetInterfaces();
     if (!fs.existsSync(configFile)) {
         const template = {};
         for (const k in interfaces) {
             template[interfaces[k]] = {
-                "dhcp": true
+                dhcp: true
             };
         }
+        // create dir
+        !fs.existsSync(__dirname + '/data') && fs.mkdirSync(__dirname + '/data');
+
         fs.writeFileSync(configFile, JSON.stringify(template, null, 2));
     }
+
     const config = getConfig();
     for (const k in interfaces) {
         if (!config[interfaces[k]]) {
             config[interfaces[k]] = {
-                "dhcp": true
+                dhcp: true
             };
             fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
         }
