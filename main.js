@@ -59,10 +59,6 @@ const argumentEscape = argument => {
 };
 
 const getConfig = () => {
-    if (!fs.existsSync(configFile)) {
-        fs.copyFileSync(configTemplateFile, configFile);
-    }
-
     return JSON.parse(fs.readFileSync(configFile).toString());
 };
 
@@ -406,6 +402,25 @@ function startAdapter(options) {
 async function main() {
     if (!fs.existsSync('/etc/dhcpcd.conf.bak')) {
         await sudo('cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak');
+    }
+    const interfaces = await consoleGetInterfaces();
+    if (!fs.existsSync(configFile)) {
+        const template = {};
+        for (const k in interfaces) {
+            template[interfaces[k]] = {
+                "dhcp": true
+            };
+        }
+        fs.writeFileSync(configFile, JSON.stringify(template, null, 2));
+    }
+    const config = getConfig();
+    for (const k in interfaces) {
+        if (!config[interfaces[k]]) {
+            config[interfaces[k]] = {
+                "dhcp": true
+            };
+            fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+        }
     }
     /*try {
         if (fs.existsSync(interfacesFile)) {
