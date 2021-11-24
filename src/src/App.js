@@ -19,6 +19,10 @@ import {
     Tooltip,
     Switch,
     LinearProgress,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
 } from '@material-ui/core';
 
 import SettingsInputComponentIcon from '@material-ui/icons/SettingsInputComponent';
@@ -38,6 +42,8 @@ import IconCancel from '@material-ui/icons/Cancel';
 import GenericApp from '@iobroker/adapter-react/GenericApp';
 import Loader from '@iobroker/adapter-react/Components/Loader';
 import I18n from '@iobroker/adapter-react/i18n';
+
+import countries from './countries.json';
 
 const styles = () => ({
     root: {},
@@ -86,13 +92,12 @@ const getWiFiIcon = (open, quality) => {
 
     if (quality > -67) {
         return open ? <SignalWifi4BarIcon style={style} /> : <SignalWifi4BarLockIcon style={style} />;
-    } else if (quality > -70) {
+    } if (quality > -70) {
         return open ? <SignalWifi3BarIcon style={style} /> : <SignalWifi3BarLockIcon style={style} />;
-    } else if (quality > -80) {
+    } if (quality > -80) {
         return open ? <SignalWifi2BarIcon style={style} /> : <SignalWifi2BarLockIcon style={style} />;
-    } else {
-        return open ? <SignalWifi1BarIcon style={style} /> : <SignalWifi1BarLockIcon style={style} />;
     }
+    return open ? <SignalWifi1BarIcon style={style} /> : <SignalWifi1BarLockIcon style={style} />;
 };
 
 class App extends GenericApp {
@@ -159,11 +164,10 @@ class App extends GenericApp {
                         const connectedB = !!(wifiConnectionsLocal.length && b.ssid === wifiConnectionsLocal[0].ssid);
                         if (connectedA) {
                             return -1;
-                        } else if (connectedB) {
+                        } if (connectedB) {
                             return 1;
-                        } else {
-                            return b.quality - a.quality;
                         }
+                        return b.quality - a.quality;
                     });
                     this.setState({ wifi });
                 }
@@ -416,9 +420,10 @@ class App extends GenericApp {
                 if (interfaceItem.dhcp !== this.state.interfaces[i].dhcp) {
                     saveEnabled = true;
                 } else {
-                    saveEnabled = interfaceItem.ip4 !== this.state.interfaces[i].ip4 ||
-                        interfaceItem.ip4subnet !== this.state.interfaces[i].ip4subnet ||
-                        interfaceItem.gateway !== this.state.interfaces[i].gateway;
+                    saveEnabled = interfaceItem.ip4 !== this.state.interfaces[i].ip4
+                        || interfaceItem.ip4subnet !== this.state.interfaces[i].ip4subnet
+                        || interfaceItem.gateway !== this.state.interfaces[i].gateway
+                        || interfaceItem.country !== this.state.interfaces[i].country;
                 }
             }
         } else {
@@ -444,6 +449,24 @@ class App extends GenericApp {
                         label={I18n.t('DHCP')}
                     />
                     <>
+                        {interfaceItem.type === 'wireless'
+                            ? <>
+                                <h4>WiFi</h4>
+                                <FormControl>
+                                    <InputLabel>{I18n.t('Country')}</InputLabel>
+                                    <Select
+                                        fullWidth
+                                        value={interfaceItem.country ? interfaceItem.country : 'DE'}
+                                        onChange={e => this.setInterfaceParam(i, 'country', e.target.value)}
+                                    >
+                                        {
+                                            Object.keys(countries)
+                                                .sort((code1, code2) => (countries[code1] > countries[code2] ? 1 : -1))
+                                                .map(code => <MenuItem value={code}>{countries[code]}</MenuItem>)
+                                        }
+                                    </Select>
+                                </FormControl>
+                            </> : null}
                         <h4>IPv4</h4>
                         <TextField
                             className={this.props.classes.input}
@@ -500,23 +523,22 @@ class App extends GenericApp {
                         </div>)
                     }
                     {
-                        interfaceItem.editable && !interfaceItem.dhcp ?
-                            <IconButton onClick={() => this.addDns(i)} title={I18n.t('Add DNS record')}>
+                        interfaceItem.editable && !interfaceItem.dhcp
+                            ? <IconButton onClick={() => this.addDns(i)} title={I18n.t('Add DNS record')}>
                                 <AddIcon />
                             </IconButton>
                             : null
                     }
                     { interfaceItem.editable && !interfaceItem.dhcp ? <br /> : null }
-                    {interfaceItem.editable ?
-                        <Button
+                    {interfaceItem.editable
+                        ? <Button
                             variant="contained"
                             color="primary"
                             disabled={!saveEnabled || this.state.processing}
                             onClick={() => this.sendData(i, '')}
                         >
                             {I18n.t('Save')}
-                        </Button> : null
-                    }
+                        </Button> : null}
                 </Grid>
                 {interfaceItem.type === 'wired'
                     ? null
@@ -533,12 +555,12 @@ class App extends GenericApp {
                         {this.renderWifi()}
                     </Grid>}
             </Grid>
-            {/*<pre>
+            {/* <pre>
                  {interfaceItem.type === 'wireless'
                     ? JSON.stringify(this.state.wifi, null, 2) + JSON.stringify(this.state.wifiConnections, null, 2)
                     : null}
                  {JSON.stringify(interfaceItem, null, 2)}
-            </pre>*/}
+            </pre> */}
         </>;
     }
 
@@ -559,7 +581,7 @@ class App extends GenericApp {
                         }
                     })}
                 >
-                    <Tooltip title={wifi.quality + ' dBm'}>
+                    <Tooltip title={`${wifi.quality} dBm`}>
                         {getWiFiIcon(wifi.security.includes('Open'), parseInt(wifi.quality))}
                     </Tooltip>
                     {wifi.ssid}
@@ -567,8 +589,7 @@ class App extends GenericApp {
                 {connected
                     ? <Button
                         onClick={() => {
-                            this.startsWifiScan(false, () =>
-                                this.disconnect());
+                            this.startsWifiScan(false, () => this.disconnect());
                         }}
                         variant="outlined"
                         className={this.props.classes.buttonIcon}

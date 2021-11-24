@@ -74,7 +74,7 @@ const wifiConnect = async (ssid, password, iface) => {
         const wpaSupplicant = `
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
-country=RU
+country=${config[iface].country ? config[iface].country : 'DE'}
 
 network={
     ssid="${ssid}"
@@ -89,7 +89,7 @@ network={
         const wpaSupplicant = `
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
-country=RU
+country=${config[iface].country ? config[iface].country : 'DE'}
 
 network={
     ssid="${ssid}"
@@ -111,7 +111,7 @@ const wifiDisconnect = async iface => {
     const wpaSupplicant = `
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
-country=RU
+country=${config[iface].country ? config[iface].country : 'DE'}
     `;
     await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
     if (!stopping) {
@@ -119,6 +119,44 @@ country=RU
         // await sudo('wpa_cli reconfigure');
         await writeInterfaces(true);
     }
+};
+
+const writeWifi = async (iface, ssid, password) => {
+    const config = getConfig();
+    let wpaSupplicant;
+    if (ssid) {
+        if (password) {
+            wpaSupplicant = `
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=${config[iface].country ? config[iface].country : 'DE'}
+
+network={
+    ssid="${ssid}"
+    psk="${password}"
+    key_mgmt=WPA-PSK
+}
+`;
+        } else {
+            wpaSupplicant = `
+            ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+            update_config=1
+            country=${config[iface].country ? config[iface].country : 'DE'}
+            
+            network={
+                ssid="${ssid}"
+                key_mgmt=NONE
+            }
+            `;
+        }
+    } else {
+        wpaSupplicant = `
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=${config[iface].country ? config[iface].country : 'DE'}
+    `;
+    }
+    await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
 };
 
 const writeInterfaces = async () => {
@@ -264,6 +302,7 @@ const triggers = {
                         } else {
                             interfaceItem.dns = [];
                         }
+                        interfaceItem.country = config[interfaceItem.iface].country;
                     }
                     interfaceItem.editable = editable;
                 });
@@ -338,7 +377,10 @@ const triggers = {
             const config = getConfig();
 
             config[input.data.iface] = input.data.dhcp ?
-                {dhcp: true}
+                {
+                    dhcp: true,
+                    country: input.data.country,
+                }
                 : {
                     dhcp: false,
                     ip4: input.data.ip4,
@@ -347,6 +389,7 @@ const triggers = {
                     // ip6subnet: input.data.ip6subnet,
                     ip4gateway: input.data.gateway,
                     dns: input.data.dns,
+                    country: input.data.country,
                 };
             setConfig(config);
             await writeInterfaces();
