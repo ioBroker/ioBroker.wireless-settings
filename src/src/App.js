@@ -423,6 +423,7 @@ class App extends GenericApp {
                     saveEnabled = interfaceItem.ip4 !== this.state.interfaces[i].ip4
                         || interfaceItem.ip4subnet !== this.state.interfaces[i].ip4subnet
                         || interfaceItem.gateway !== this.state.interfaces[i].gateway
+                        || JSON.stringify(interfaceItem.dns) !== JSON.stringify(this.state.interfaces[i].dns)
                         || interfaceItem.country !== this.state.interfaces[i].country;
                 }
             }

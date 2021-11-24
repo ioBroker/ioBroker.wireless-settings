@@ -68,37 +68,9 @@ const setConfig = config => {
 const wifiConnect = async (ssid, password, iface) => {
     const config = getConfig();
     config[iface].wifi = ssid;
-    config[iface].wifiPassword = !!password;
+    config[iface].wifiPassword = password ? adapter.encrypt(password) : '';
     setConfig(config);
-    if (password) {
-        const wpaSupplicant = `
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=${config[iface].country ? config[iface].country : 'DE'}
-
-network={
-    ssid="${ssid}"
-    psk="${password}"
-    key_mgmt=WPA-PSK
-}
-`;
-
-        await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
-        // fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
-    } else {
-        const wpaSupplicant = `
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=${config[iface].country ? config[iface].country : 'DE'}
-
-network={
-    ssid="${ssid}"
-    key_mgmt=NONE
-}
-`;
-        await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
-        // fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
-    }
+    await writeWifi(iface);
     // await sudo('service wpa_supplicant restart');
     await writeInterfaces(true);
 };
@@ -108,12 +80,7 @@ const wifiDisconnect = async iface => {
     delete config[iface].wifi;
     delete config[iface].wifiPassword;
     setConfig(config);
-    const wpaSupplicant = `
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-country=${config[iface].country ? config[iface].country : 'DE'}
-    `;
-    await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    await writeWifi(iface);
     if (!stopping) {
         // fs.writeFileSync(wpaSupplicantFile, wpaSupplicant);
         // await sudo('wpa_cli reconfigure');
@@ -121,8 +88,10 @@ country=${config[iface].country ? config[iface].country : 'DE'}
     }
 };
 
-const writeWifi = async (iface, ssid, password) => {
+const writeWifi = async (iface) => {
     const config = getConfig();
+    const ssid = config[iface].wifi;
+    const password = config[iface].wifiPassword ? adapter.decrypt(config[iface].wifiPassword) : null;
     let wpaSupplicant;
     if (ssid) {
         if (password) {
@@ -376,22 +345,21 @@ const triggers = {
         } else {
             const config = getConfig();
 
-            config[input.data.iface] = input.data.dhcp ?
-                {
-                    dhcp: true,
-                    country: input.data.country,
-                }
-                : {
-                    dhcp: false,
-                    ip4: input.data.ip4,
-                    ip4subnet: input.data.ip4subnet,
-                    // ip6: input.data.ip6,
-                    // ip6subnet: input.data.ip6subnet,
-                    ip4gateway: input.data.gateway,
-                    dns: input.data.dns,
-                    country: input.data.country,
-                };
+            if (input.data.dhcp) {
+                config[input.data.iface].dhcp = true;
+                config[input.data.iface].country = input.data.country;
+            } else {
+                config[input.data.iface].dhcp = false;
+                config[input.data.iface].ip4 = input.data.ip4;
+                config[input.data.iface].ip4subnet = input.data.ip4subnet;
+                config[input.data.iface].ip4gateway = input.data.gateway;
+                config[input.data.iface].dns = input.data.dns;
+                config[input.data.iface].country = input.data.country;
+            }
             setConfig(config);
+            if (input.data.iface[0] === 'w') {
+                await writeWifi(input.data.iface);
+            }
             await writeInterfaces();
         }
         response(true);
