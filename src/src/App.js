@@ -66,6 +66,9 @@ const styles = () => ({
         display: 'block',
         marginBottom: 10,
     },
+    select: {
+        width: 200,
+    },
 });
 
 const ipValidate = (ip, isMask) => {
@@ -456,7 +459,7 @@ class App extends GenericApp {
                                 <FormControl>
                                     <InputLabel>{I18n.t('Country')}</InputLabel>
                                     <Select
-                                        fullWidth
+                                        className={this.props.classes.select}
                                         value={interfaceItem.country ? interfaceItem.country : 'DE'}
                                         onChange={e => this.setInterfaceParam(i, 'country', e.target.value)}
                                     >
