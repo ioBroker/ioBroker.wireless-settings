@@ -1,14 +1,14 @@
-![Logo](admin/telemetry.png)
+![Logo](admin/network.png)
 # ioBroker.telemetry
 
-[![NPM version](http://img.shields.io/npm/v/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.telemetry)
-[![Downloads](https://img.shields.io/npm/dm/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.telemetry)
-![Number of Installations (latest)](http://iobroker.live/badges/telemetry-installed.svg)
-![Number of Installations (stable)](http://iobroker.live/badges/telemetry-stable.svg)
-[![Dependency Status](https://img.shields.io/david/ioBroker/iobroker.telemetry.svg)](https://david-dm.org/ioBroker/iobroker.telemetry)
-[![Known Vulnerabilities](https://snyk.io/test/github/ioBroker/ioBroker.telemetry/badge.svg)](https://snyk.io/test/github/ioBroker/ioBroker.telemetry)
+[![NPM version](http://img.shields.io/npm/v/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network)
+[![Downloads](https://img.shields.io/npm/dm/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network)
+![Number of Installations (latest)](http://iobroker.live/badges/network-installed.svg)
+![Number of Installations (stable)](http://iobroker.live/badges/network-stable.svg)
+[![Dependency Status](https://img.shields.io/david/ioBroker/iobroker.network.svg)](https://david-dm.org/ioBroker/iobroker.network)
+[![Known Vulnerabilities](https://snyk.io/test/github/ioBroker/ioBroker.network/badge.svg)](https://snyk.io/test/github/ioBroker/ioBroker.network)
 
-[![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.telemetry/)
+[![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.network/)
 
 ## telemetry adapter for ioBroker
 
