@@ -431,7 +431,7 @@ async function main() {
             };
         }
         // create dir
-        !fs.existsSync(__dirname + '/data') && fs.mkdirSync(__dirname + '/data');
+        !fs.existsSync(`${__dirname}/data`) && fs.mkdirSync(`${__dirname}/data`);
 
         fs.writeFileSync(configFile, JSON.stringify(template, null, 2));
     }

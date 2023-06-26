@@ -1,5 +1,5 @@
 ![Logo](admin/network.png)
-# ioBroker.telemetry
+# ioBroker.network
 
 [![NPM version](http://img.shields.io/npm/v/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network)
 [![Downloads](https://img.shields.io/npm/dm/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network)
@@ -10,44 +10,17 @@
 
 [![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.network/)
 
-## telemetry adapter for ioBroker
+## Adapter for Wifi and network settings on Raspberry Pi
+This adapter can set up the network on Raspberry Pi. It can be used for Wifi and for LAN.
 
-This adapter is used to anonymously collect the data on the central server for scientific research
-
-## Todo
-- events and objects are in RAM
-- hash IDs
-- Update RAM objects on objectChanged (updated / deleted)
-- Show lastEvent and events in hours (and update this info on state changed - `data.update`)
-- add setTimeout for send events (don't forget to clean the timeout on unload)
-- flash with green on update statistics only for according objects (by the update and on save)
-
-## Preparation
-Edit /etc/sudoers.d/iobroker (use only `sudo visudo -f /etc/sudoers.d/iobroker`):
-```
-# At the very end of the file
-iobroker ALL=(root) NOPASSWD: /usr/sbin/iwlist scan
-iobroker ALL=(root) NOPASSWD: /sbin/iwlist scan
-iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush wlan0
-iobroker ALL=(root) NOPASSWD: /sbin/ip addr flush wlan0
-iobroker ALL=(root) NOPASSWD: /usr/sbin/ip addr flush eth0
-iobroker ALL=(root) NOPASSWD: /sbin/ip addr flush eth0
-iobroker ALL=(root) NOPASSWD: /usr/sbin/ifconfig wlan0 down
-iobroker ALL=(root) NOPASSWD: /sbin/ifconfig wlan0 down
-iobroker ALL=(root) NOPASSWD: /usr/sbin/ifconfig wlan0 up
-iobroker ALL=(root) NOPASSWD: /sbin/ifconfig wlan0 up
-iobroker ALL=(root) NOPASSWD: /usr/sbin/service dhcpcd restart
-iobroker ALL=(root) NOPASSWD: /usr/bin/cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak
-iobroker ALL=(root) NOPASSWD: /bin/cp /etc/dhcpcd.conf /etc/dhcpcd.conf.bak
-iobroker ALL=(root) NOPASSWD: /usr/bin/tee /etc/wpa_supplicant/wpa_supplicant.conf
-iobroker ALL=(root) NOPASSWD: /usr/bin/tee /etc/dhcpcd.conf
-```
-
-
-## Todo
-GUI: detect if adapter running and if not show according message
-
+<!--
+	Placeholder for the next version (at the beginning of the line):
+	### **WORK IN PROGRESS**
+-->
 ## Changelog
+### **WORK IN PROGRESS**
+* (bluefox) Updated the GUI to the latest version
+
 ### 0.1.0 (2021-01-18)
 * (ioBroker) fixed build scripts
 
@@ -57,7 +30,7 @@ GUI: detect if adapter running and if not show according message
 ## License
 MIT License
 
-Copyright (c) 2021 bluefox <dogafox@gmail.com>
+Copyright (c) 2021-2023 bluefox <dogafox@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

@@ -60,7 +60,9 @@
         "type": "communication",
         "compact": true,
         "materialize": true,
-        "messagebox": true
+        "messagebox": true,
+        "connectionType": "local",
+        "dataSource": "none"
     },
     "native": {
         

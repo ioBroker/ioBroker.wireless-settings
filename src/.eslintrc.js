@@ -9,7 +9,7 @@ module.exports = {
         // 'react-app',
         'plugin:eqeqeq-fix/recommended',
     ],
-    parser: 'babel-eslint',
+    parser: '@babel/eslint-parser',
     parserOptions: {
         ecmaFeatures: {
             jsx: true,

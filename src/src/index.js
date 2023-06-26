@@ -1,26 +1,25 @@
 /* eslint-disable */
 import React from 'react';
-import ReactDOM from 'react-dom';
-import * as Sentry from '@sentry/browser';
-import * as SentryIntegrations from '@sentry/integrations';
-import { MuiThemeProvider } from '@material-ui/core/styles';
-import { SnackbarProvider } from 'notistack';
+import { createRoot } from 'react-dom/client';
+import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import './index.css';
-import theme from '@iobroker/adapter-react/Theme';
-import Utils from '@iobroker/adapter-react/Components/Utils';
+import { Theme, Utils } from '@iobroker/adapter-react-v5';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
-import { version } from '../package.json';
+import pkg from '../package.json';
 
 window.adapterName = 'network';
 let themeName = Utils.getThemeName();
 
-console.log(`iobroker.${window.adapterName}@${version} using theme "${themeName}"`);
+console.log(`iobroker.${window.adapterName}@${pkg.version} using theme "${themeName}"`);
 
 function build() {
-    return ReactDOM.render(
-        <MuiThemeProvider theme={theme(themeName)}>
-            <SnackbarProvider>
+    const container = document.getElementById('root');
+    const root = createRoot(container);
+
+    return root.render(
+        <StyledEngineProvider injectFirst>
+            <ThemeProvider theme={Theme(themeName)}>
                 <App
                     common={{}}
                     onThemeChange={_theme => {
@@ -28,8 +27,8 @@ function build() {
                         build();
                     }}
                 />
-            </SnackbarProvider>
-        </MuiThemeProvider>,
+            </ThemeProvider>
+        </StyledEngineProvider>,
         document.getElementById('root'),
     );
 }
