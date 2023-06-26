@@ -10,15 +10,15 @@
 
 [![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.network/)
 
-## Adapter for Wifi and network settings on Raspberry Pi
-This adapter can set up the network on Raspberry Pi. It can be used for Wifi and for LAN.
+## Adapter for Wi-Fi and network settings on Raspberry Pi
+This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi and for LAN.
 
 <!--
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.2.0 (2023-06-26)
 * (bluefox) Updated the GUI to the latest version
 
 ### 0.1.0 (2021-01-18)

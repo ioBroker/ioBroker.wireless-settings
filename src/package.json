@@ -1,6 +1,6 @@
 {
   "name": "network-admin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "dependencies": {
     "@iobroker/adapter-react-v5": "^4.1.0",
@@ -42,7 +42,5 @@
     "not ie <= 11",
     "not op_mini all"
   ],
-  "devDependencies": {
-
-  }
+  "devDependencies": {}
 }

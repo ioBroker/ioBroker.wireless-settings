@@ -1,6 +1,6 @@
 {
   "name": "iobroker.network",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "This adapter is used to anonymously collect the data on the central server for scientific research",
   "author": {
     "name": "bluefox",
@@ -70,7 +70,8 @@
     "release": "release-script patch --yes",
     "release-patch": "release-script patch --yes",
     "release-minor": "release-script minor --yes",
-    "release-major": "release-script major --yes",    "update-packages": "ncu --upgrade && cd src && ncu --upgrade && cd .."
+    "release-major": "release-script major --yes",
+    "update-packages": "ncu --upgrade && cd src && ncu --upgrade && cd .."
   },
   "bugs": {
     "url": "https://github.com/ioBroker/ioBroker.network/issues"
