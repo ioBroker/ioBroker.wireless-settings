@@ -29,7 +29,7 @@ function deleteFoldersRecursive(path, exceptions) {
 }
 
 gulp.task('clean', done => {
-    deleteFoldersRecursive(`${__dirname}/admin`, ['network.png']);
+    deleteFoldersRecursive(`${__dirname}/admin`, ['network-settings.png']);
     done();
 });
 

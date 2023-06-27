@@ -121,7 +121,7 @@ class App extends GenericApp {
             'zh-cn': require('./i18n/zh-cn'),
         };
         extendedProps.doNotLoadAllObjects = true;
-        extendedProps.adapterName = 'network';
+        extendedProps.adapterName = 'network-settings';
 
         super(props, extendedProps);
 
@@ -160,11 +160,11 @@ class App extends GenericApp {
 
     refreshWiFi = () => {
         let wifiConnectionsLocal = null;
-        return this.socket.sendTo(`network.${this.instance}`, 'wifiConnections', null)
+        return this.socket.sendTo(`network-settings.${this.instance}`, 'wifiConnections', null)
             .then(wifiConnections => {
                 wifiConnectionsLocal = wifiConnections;
                 this.setState({ wifiConnections });
-                return this.socket.sendTo(`network.${this.instance}`, 'wifi', null);
+                return this.socket.sendTo(`network-settings.${this.instance}`, 'wifi', null);
             })
             .then(wifi => {
                 if (wifi.length) {
@@ -187,7 +187,7 @@ class App extends GenericApp {
         if (this.state.firstRequest === 0) {
             this.setState({ firstRequest: 1 });
         }
-        return this.socket.sendTo(`network.${this.instance}`, 'interfaces', null)
+        return this.socket.sendTo(`network-settings.${this.instance}`, 'interfaces', null)
             .then(interfaces => {
                 interfaces.sort((item1, item2) => (item1.mac > item2.mac ? -1 : 1));
                 interfaces.sort((item1, item2) => (item1.type === 'wired' && item2.type === 'wired' ? 0 : (item1.type === 'wired' ? -1 : 1)));
@@ -205,7 +205,7 @@ class App extends GenericApp {
 
                 return this.refreshWiFi();
             })
-            .then(() => this.socket.sendTo(`network.${this.instance}`, 'dns', null))
+            .then(() => this.socket.sendTo(`network-settings.${this.instance}`, 'dns', null))
             .then(dns => this.setState({ dns, firstRequest: 2 }));
     }
 
@@ -239,7 +239,7 @@ class App extends GenericApp {
 
     sendData = (index, password) => {
         this.setState({ processing: true });
-        this.socket.sendTo(`network.${this.instance}`, 'changeInterface', {
+        this.socket.sendTo(`network-settings.${this.instance}`, 'changeInterface', {
             rootPassword: password,
             data: this.state.interfacesChanged[index],
         })
@@ -260,7 +260,7 @@ class App extends GenericApp {
 
     connect = (ssid, password) => {
         this.setState({ processing: true });
-        return this.socket.sendTo(`network.${this.instance}`, 'wifiConnect', { ssid, password, iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
+        return this.socket.sendTo(`network-settings.${this.instance}`, 'wifiConnect', { ssid, password, iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
             .then(() => {
                 this.refreshWiFi();
                 const startTime = Date.now();
@@ -287,7 +287,7 @@ class App extends GenericApp {
 
     disconnect = () => {
         this.setState({ processing: true });
-        return this.socket.sendTo(`network.${this.instance}`, 'wifiDisconnect', { iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
+        return this.socket.sendTo(`network-settings.${this.instance}`, 'wifiDisconnect', { iface: this.state.interfacesChanged[this.getSelectedTab()].iface })
             .then(() => {
                 this.refreshWiFi();
                 const startTime = Date.now();

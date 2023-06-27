@@ -1,14 +1,14 @@
-![Logo](admin/network.png)
-# ioBroker.network
+![Logo](admin/network-settings.png)
+# ioBroker.network-settings
 
-[![NPM version](http://img.shields.io/npm/v/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network)
-[![Downloads](https://img.shields.io/npm/dm/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network)
-![Number of Installations (latest)](http://iobroker.live/badges/network-installed.svg)
-![Number of Installations (stable)](http://iobroker.live/badges/network-stable.svg)
-[![Dependency Status](https://img.shields.io/david/ioBroker/iobroker.network.svg)](https://david-dm.org/ioBroker/iobroker.network)
-[![Known Vulnerabilities](https://snyk.io/test/github/ioBroker/ioBroker.network/badge.svg)](https://snyk.io/test/github/ioBroker/ioBroker.network)
+[![NPM version](http://img.shields.io/npm/v/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network-settings)
+[![Downloads](https://img.shields.io/npm/dm/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network-settings)
+![Number of Installations (latest)](http://iobroker.live/badges/network-settings-installed.svg)
+![Number of Installations (stable)](http://iobroker.live/badges/network-settings-stable.svg)
+[![Dependency Status](https://img.shields.io/david/ioBroker/iobroker.network-settings.svg)](https://david-dm.org/ioBroker/iobroker.network-settings)
+[![Known Vulnerabilities](https://snyk.io/test/github/ioBroker/ioBroker.network-settings/badge.svg)](https://snyk.io/test/github/ioBroker/ioBroker.network-settings)
 
-[![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.network/)
+[![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.network-settings/)
 
 ## Adapter for Wi-Fi and network settings on Raspberry Pi
 This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi and for LAN.
@@ -18,6 +18,9 @@ This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi an
 	### **WORK IN PROGRESS**
 -->
 ## Changelog
+### **WORK IN PROGRESS**
+* (bluefox) Change name to "network-settings"
+
 ### 0.2.2 (2023-06-27)
 * (bluefox) Updated the GUI to the latest version
 

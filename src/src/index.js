@@ -8,7 +8,7 @@ import App from './App';
 import * as serviceWorker from './serviceWorker';
 import pkg from '../package.json';
 
-window.adapterName = 'network';
+window.adapterName = 'network-settings';
 let themeName = Utils.getThemeName();
 
 console.log(`iobroker.${window.adapterName}@${pkg.version} using theme "${themeName}"`);

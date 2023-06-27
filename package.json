@@ -1,12 +1,12 @@
 {
-  "name": "iobroker.network",
+  "name": "iobroker.network-settings",
   "version": "0.2.2",
   "description": "This adapter is used to anonymously collect the data on the central server for scientific research",
   "author": {
     "name": "bluefox",
     "email": "dogafox@gmail.com"
   },
-  "homepage": "https://github.com/ioBroker/ioBroker.network",
+  "homepage": "https://github.com/ioBroker/ioBroker.network-settings",
   "license": "MIT",
   "keywords": [
     "network",
@@ -14,7 +14,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/ioBroker/ioBroker.network"
+    "url": "https://github.com/ioBroker/ioBroker.network-settings"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^2.6.8",
@@ -74,7 +74,7 @@
     "update-packages": "ncu --upgrade && cd src && ncu --upgrade && cd .."
   },
   "bugs": {
-    "url": "https://github.com/ioBroker/ioBroker.network/issues"
+    "url": "https://github.com/ioBroker/ioBroker.network-settings/issues"
   },
   "readmeFilename": "README.md"
 }

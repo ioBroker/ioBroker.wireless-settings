@@ -11,7 +11,7 @@ const adapterName = require('./package.json').name.split('.').pop();
 // const childProcess = require('child_process');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const configFile = __dirname + '/data/network.json';
+const configFile = `${__dirname}/data/network.json`;
 
 let stopping = false;
 let cmdRunning = false;
