@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "network",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "news": {
+      "0.2.1": {
+        "en": "Updated the GUI to the latest version",
+        "de": "Aktualisiert die GUI auf die neueste Version",
+        "ru": "Обновлено GUI до последней версии",
+        "pt": "Atualizado o GUI para a versão mais recente",
+        "nl": "Verhoogde de GUI naar de nieuwste versie",
+        "fr": "Mise à jour de l'interface graphique à la dernière version",
+        "it": "Aggiornato la GUI alla versione più recente",
+        "es": "Actualizado el GUI a la última versión",
+        "pl": "Ulepszona wersja GUI do najnowszej wersji",
+        "uk": "Оновлено GUI в останню версію",
+        "zh-cn": "A. 最新版本的《古伊》更新"
+      },
       "0.2.0": {
         "en": "Updated the GUI to the latest version",
         "de": "Aktualisiert die GUI auf die neueste Version",
