@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "network-settings",
-    "version": "0.2.2",
+    "version": "0.3.0",
     "news": {
+      "0.3.0": {
+        "en": "Change name to \"network-settings\"",
+        "de": "Name auf Netzwerkeinstellungen ändern",
+        "ru": "Изменить имя в сетевых настройках",
+        "pt": "Alterar o nome para configurações de rede",
+        "nl": "Veranderingsnaam naar netwerk-settingen",
+        "fr": "Changer de nom aux réglages de réseau",
+        "it": "Cambia nome alle impostazioni di rete",
+        "es": "Cambiar el nombre a las estaciones de red",
+        "pl": "Zmiana nazwy na składowanie sieci",
+        "uk": "Зміна імені в мережевих налаштуваннях",
+        "zh-cn": "网络设计的更改名称"
+      },
       "0.2.2": {
         "en": "Updated the GUI to the latest version",
         "de": "Aktualisiert die GUI auf die neueste Version",

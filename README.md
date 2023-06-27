@@ -18,7 +18,7 @@ This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi an
 	### **WORK IN PROGRESS**
 -->
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.3.0 (2023-06-27)
 * (bluefox) Change name to "network-settings"
 
 ### 0.2.2 (2023-06-27)
