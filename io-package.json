@@ -3,19 +3,6 @@
     "name": "network-settings",
     "version": "0.4.1",
     "news": {
-      "0.4.1": {
-        "en": "Updated for raspberry 5",
-        "de": "Aktualisiert für Himbeere 5",
-        "ru": "Обновлено для малины 5",
-        "pt": "Atualizado para framboesa 5",
-        "nl": "Bijgewerkt voor framboos 5",
-        "fr": "Mise à jour pour framboise 5",
-        "it": "Aggiornato per lampone 5",
-        "es": "Actualizado para frambuesa 5",
-        "pl": "Aktualizacja dla malin 5",
-        "uk": "Ажурирано для малини 5",
-        "zh-cn": "草莓5更新"
-      },
       "0.4.0": {
         "en": "Change name to \"network-settings\"",
         "de": "Name auf \"Netzwerkeinstellungen\" ändern",

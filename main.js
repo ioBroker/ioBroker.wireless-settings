@@ -108,6 +108,7 @@ const wifiDisconnect = async ssid => {
     */
 };
 
+/*
 const writeWifi = async iface => {
     const config = getConfig();
     const ssid = config[iface].wifi;
@@ -149,6 +150,7 @@ country=${config[iface].country ? config[iface].country : 'DE'}
     await sudo(`ifconfig ${iface} down`);
     await sudo(`ifconfig ${iface} up`);
 };
+*/
 
 const writeInterfaces = async () => {
     const config = getConfig();
