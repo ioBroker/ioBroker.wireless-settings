@@ -14,9 +14,10 @@ const configFile = `${__dirname}/data/network.json`;
 let stopping = false;
 let cmdRunning = false;
 
+// Take the logic for WI-FI here
+// https://github.com/RPi-Distro/raspi-config/blob/bookworm/raspi-config#L2848
 /**
  * The adapter instance
- *
  */
 let adapter;
 
@@ -60,17 +61,40 @@ const setConfig = config => {
     fs.writeFileSync(configFile, JSON.stringify(config, null, 4));
 };
 
-const wifiConnect = async (ssid, password, iface) => {
-    const config = getConfig();
-    config[iface].wifi = ssid;
-    config[iface].wifiPassword = password ? adapter.encrypt(password) : '';
-    setConfig(config);
-    await writeWifi(iface);
-    // await sudo('service wpa_supplicant restart');
-    await writeInterfaces(true);
+const wifiConnect = async (ssid, password, iface, country) => {
+    if (country) {
+        try {
+            const result = (await exec(`iw reg set ${country || 'DE'}`)).stdout.trim();
+            adapter.log.debug(`Set wifi country to ${country} => ${result}`);
+        } catch (e) {
+            adapter.log.error(`Cannot execute: ${e}`);
+        }
+    }
+    try {
+        const result = await sudo(`nmcli radio wifi on`);
+        adapter.log.debug(`Enable radio => ${result}`);
+    } catch (e) {
+        adapter.log.error(`Cannot enable radio: ${e}`);
+    }
+    try {
+        const result = await sudo(`nmcli device wifi connect "${ssid}" password "${password}" ifname "${iface}"`);
+        adapter.log.debug(`Set wifi "${ssid}" on "${iface} => ${result}`);
+    } catch (e) {
+        adapter.log.error(`Cannot set wifi: ${e}`);
+    }
+    // const config = getConfig();
+    // config[iface].wifi = ssid;
+    // config[iface].wifiPassword = password ? adapter.encrypt(password) : '';
+    // setConfig(config);
+    // await writeWifi(iface);
+    // // await sudo('service wpa_supplicant restart');
+    // await writeInterfaces(true);
 };
 
-const wifiDisconnect = async iface => {
+const wifiDisconnect = async ssid => {
+    const result = await sudo(`nmcli connection down id "${ssid}"`);
+    adapter.log.debug(`Disable wifi "${ssid}" => ${result}`);
+    /*
     const config = getConfig();
     delete config[iface].wifi;
     delete config[iface].wifiPassword;
@@ -81,6 +105,7 @@ const wifiDisconnect = async iface => {
         // await sudo('wpa_cli reconfigure');
         await writeInterfaces(true);
     }
+    */
 };
 
 const writeWifi = async iface => {
@@ -103,15 +128,15 @@ network={
 `;
         } else {
             wpaSupplicant = `
-            ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-            update_config=1
-            country=${config[iface].country ? config[iface].country : 'DE'}
-            
-            network={
-                ssid="${ssid}"
-                key_mgmt=NONE
-            }
-            `;
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+country=${config[iface].country ? config[iface].country : 'DE'}
+
+network={
+    ssid="${ssid}"
+    key_mgmt=NONE
+}
+`;
         }
     } else {
         wpaSupplicant = `
@@ -348,7 +373,7 @@ const triggers = {
                 }
             });
         } else {
-            await wifiConnect(input.ssid, input.password, input.iface);
+            await wifiConnect(input.ssid, input.password, input.iface, input.country);
 
             try {
                 response({ result: (await justExec('iwgetid -r')) === 'input.ssid' });
@@ -369,7 +394,7 @@ const triggers = {
                 }
             });
         } else {
-            wifiDisconnect(input.iface);
+            wifiDisconnect(input.ssid);
             response({ result: true });
         }
     },
@@ -394,7 +419,7 @@ const triggers = {
             }
             setConfig(config);
             if (input.data.iface[0] === 'w') {
-                await writeWifi(input.data.iface);
+                // await writeWifi(input.data.iface);
             }
             await writeInterfaces();
         }

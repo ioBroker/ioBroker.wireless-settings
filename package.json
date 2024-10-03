@@ -54,6 +54,7 @@
     "admin/",
     "lib/",
     "data/",
+    "wlan_rights.sh",
     "!lib/adapter-config.d.ts",
     "io-package.json",
     "LICENSE",

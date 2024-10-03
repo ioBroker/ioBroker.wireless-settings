@@ -15,12 +15,28 @@
 
 This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi and for LAN.
 
+## Required permissions
+This adapter assumes that `iobroker` user may execute the following commands:
+- `/usr/sbin/iw`
+- `/usr/bin/nmcli`
+- `/usr/sbin/iwlist`
+
+You can add the rights by calling:
+```
+sudo chmod +x /opt/iobroker/node_modules/iobroker.network-settings/wlan_rights.sh
+sudo /opt/iobroker/node_modules/iobroker.network-settings/wlan_rights.sh
+```
+
 <!--
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+
+- (@GermanBluefox) Updated for raspberry 5
+
 ### 0.4.0 (2024-10-03)
 
 - (@GermanBluefox) Change name to "network-settings"

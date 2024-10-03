@@ -349,13 +349,14 @@ class App extends GenericApp {
         }
     };
 
-    connect = (ssid, password) => {
+    connect = (ssid, password, country) => {
         this.setState({ processing: true });
         return this.socket
             .sendTo(`network-settings.${this.instance}`, 'wifiConnect', {
                 ssid,
                 password,
                 iface: this.state.tabValue,
+                country,
             })
             .then(() => {
                 this.refreshWiFi();
@@ -385,6 +386,7 @@ class App extends GenericApp {
         return this.socket
             .sendTo(`network-settings.${this.instance}`, 'wifiDisconnect', {
                 iface: this.state.tabValue,
+                ssid: this.state.wifiConnections[0]?.ssid || '',
             })
             .then(() => {
                 this.refreshWiFi();
@@ -505,7 +507,8 @@ class App extends GenericApp {
                         color="primary"
                         disabled={!this.state.wifiDialogPassword}
                         onClick={() => {
-                            this.connect(this.state.wifiDialog, this.state.wifiDialogPassword);
+                            const interfaceItem = this.state.interfacesChanged.find(item => item.iface === this.state.tabValue);
+                            this.connect(this.state.wifiDialog, this.state.wifiDialogPassword, interfaceItem?.country);
                             this.setState({
                                 wifiDialog: false,
                                 wifiPasswordVisible: false,
@@ -612,7 +615,7 @@ class App extends GenericApp {
                                         <Select
                                             variant="standard"
                                             style={styles.select}
-                                            value={interfaceItem.country ? interfaceItem.country : 'DE'}
+                                            value={interfaceItem.country || 'DE'}
                                             onChange={e => this.setInterfaceParam(i, 'country', e.target.value)}
                                         >
                                             {Object.keys(countries)
@@ -765,7 +768,8 @@ class App extends GenericApp {
                         onClick={() =>
                             this.startsWifiScan(false, () => {
                                 if (wifi.security.includes('Open')) {
-                                    this.connect(wifi.ssid, '');
+                                    const interfaceItem = this.state.interfacesChanged.find(item => item.iface === this.state.tabValue);
+                                    this.connect(wifi.ssid, '', interfaceItem?.country);
                                 } else {
                                     this.setState({ wifiDialog: wifi.ssid });
                                 }
