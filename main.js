@@ -121,6 +121,8 @@ country=${config[iface].country ? config[iface].country : 'DE'}
     `;
     }
     await justExec(`echo ${argumentEscape(wpaSupplicant)} | sudo tee /etc/wpa_supplicant/wpa_supplicant.conf`);
+    await sudo(`ifconfig ${iface} down`);
+    await sudo(`ifconfig ${iface} up`);
 };
 
 const writeInterfaces = async () => {
@@ -162,7 +164,6 @@ ${dns}
 
         if (!stopping) {
             // fs.writeFileSync(interfacesFile, interfaces);
-
             const interfaces = await consoleGetInterfaces();
             for (const k in interfaces) {
                 await sudo(`ip addr flush ${interfaces[k]}`);
@@ -189,23 +190,55 @@ const getWiFi = async () => {
                 networks.push(currentNetwork);
             }
             let matches;
-            if ((matches = line.match(/^ESSID:"(.*)"/))) {
+            if (currentNetwork && (matches = line.match(/^ESSID:"(.*)"/))) {
                 currentNetwork.ssid = matches[1];
             }
-            if ((matches = line.match(/Signal level=(.*) dBm/))) {
+            if (currentNetwork && (matches = line.match(/Signal level=(.*) dBm/))) {
                 currentNetwork.quality = matches[1];
             }
-            if (line.match(/Encryption key:off/)) {
+            if (currentNetwork && line.match(/Encryption key:off/)) {
                 currentNetwork.security.push('Open');
             }
-            if (line.match(/IE: WPA Version 1/)) {
+            if (currentNetwork && line.match(/IE: WPA Version 1/)) {
                 currentNetwork.security.push('WPA');
             }
-            if (line.match(/IEEE 802\.11i\/WPA2 Version 1/)) {
+            if (currentNetwork && line.match(/IEEE 802\.11i\/WPA2 Version 1/)) {
                 currentNetwork.security.push('WPA2');
             }
         });
     }
+
+    // Remove SSID with the same name and take the strongest one
+    let changed;
+    do {
+        changed = false;
+        for (let i = networks.length - 1; i >= 0; i--) {
+            const ssid = networks[i].ssid;
+            const pos = networks.findIndex((item, j) => j !== i && item.ssid === ssid);
+            if (pos !== -1) {
+                // find the strongest signal in the list
+                let max = i;
+                for (let j = 0; j < networks.length; j++) {
+                    if (
+                        networks[j].ssid === ssid &&
+                        parseFloat(networks[j].quality) > parseFloat(networks[max].quality)
+                    ) {
+                        max = j;
+                    }
+                }
+                const strongest = networks[max];
+                // delete all SSID with the same name
+                for (let j = networks.length - 1; j >= 0; j--) {
+                    if (networks[j].ssid === ssid) {
+                        networks.splice(j, 1);
+                    }
+                }
+                networks.push(strongest);
+                changed = true;
+                break;
+            }
+        }
+    } while (changed);
 
     return networks;
 };
@@ -214,8 +247,8 @@ const getWiFiConnections = async () => {
     let ssid = null;
     try {
         ssid = await justExec('iwgetid -r');
-    } catch {
-        //adapter.log.warn('Cannot execute "iwgetid": ' + e);
+    } catch (e) {
+        adapter.log.warn(`Cannot execute "iwgetid": ${e}`);
     }
     return ssid ? [{ ssid }] : [];
 };
