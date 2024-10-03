@@ -1,6 +1,6 @@
 {
   "name": "iobroker.network-settings",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "This adapter is used to anonymously collect the data on the central server for scientific research",
   "author": {
     "name": "bluefox",
