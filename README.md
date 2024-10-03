@@ -33,7 +33,7 @@ sudo /opt/iobroker/node_modules/iobroker.network-settings/wlan_rights.sh
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.4.2 (2024-10-03)
 
 - (@GermanBluefox) Updated for raspberry 5
 
