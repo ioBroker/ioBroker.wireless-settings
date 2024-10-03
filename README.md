@@ -1,4 +1,5 @@
 ![Logo](admin/network-settings.png)
+
 # ioBroker.network-settings
 
 [![NPM version](http://img.shields.io/npm/v/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network-settings)
@@ -11,29 +12,37 @@
 [![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.network-settings/)
 
 ## Adapter for Wi-Fi and network settings on Raspberry Pi
+
 This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi and for LAN.
 
 <!--
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+
 ## Changelog
+
 ### 0.3.0 (2023-06-27)
-* (bluefox) Change name to "network-settings"
+
+-   (bluefox) Change name to "network-settings"
 
 ### 0.2.2 (2023-06-27)
-* (bluefox) Updated the GUI to the latest version
+
+-   (bluefox) Updated the GUI to the latest version
 
 ### 0.1.0 (2021-01-18)
-* (ioBroker) fixed build scripts
+
+-   (ioBroker) fixed build scripts
 
 ### 0.0.1 (2021-01-18)
-* (ioBroker) initial release
+
+-   (ioBroker) initial release
 
 ## License
+
 MIT License
 
-Copyright (c) 2021-2023 bluefox <dogafox@gmail.com>
+Copyright (c) 2021-2024 bluefox <dogafox@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

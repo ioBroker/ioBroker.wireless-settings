@@ -1,16 +1,14 @@
-'use strict';
-
 const utils = require('@iobroker/adapter-core');
 const wifi = require('node-wifi');
-const networkInterfaces = require('os').networkInterfaces;
-const dns = require('dns');
-const fs = require('fs');
-const Netmask = require('netmask').Netmask;
+const networkInterfaces = require('node:os').networkInterfaces;
+const dns = require('node:dns');
+const fs = require('node:fs');
+const { Netmask } = require('netmask');
 const si = require('systeminformation');
 const adapterName = require('./package.json').name.split('.').pop();
 // const childProcess = require('child_process');
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const util = require('node:util');
+const exec = util.promisify(require('node:child_process').exec);
 const configFile = `${__dirname}/data/network.json`;
 
 let stopping = false;
@@ -18,6 +16,7 @@ let cmdRunning = false;
 
 /**
  * The adapter instance
+ *
  * @type {ioBroker.Adapter}
  */
 let adapter;
@@ -29,9 +28,8 @@ const sudo = async command => {
         adapter.log.debug(`Result for "SUDO ${command}": ${result}`);
         cmdRunning = false;
         return result;
-    } else {
-        return '';
     }
+    return '';
 
     //return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
     // return childProcess.execSync(command).toString().trim();
@@ -44,14 +42,12 @@ const justExec = async command => {
         adapter.log.debug(`Result for "${command}": ${result}`);
         cmdRunning = false;
         return result;
-    } else {
-        return '';
     }
+    return '';
 
     // return childProcess.execSync(`echo ${password} | sudo -S command`).toString().trim();
     // return childProcess.execSync(command).toString().trim();
 };
-
 
 const argumentEscape = argument => {
     return `'${argument.replace(/'/, /\\'/g)}'`;
@@ -88,7 +84,7 @@ const wifiDisconnect = async iface => {
     }
 };
 
-const writeWifi = async (iface) => {
+const writeWifi = async iface => {
     const config = getConfig();
     const ssid = config[iface].wifi;
     const password = config[iface].wifiPassword ? adapter.decrypt(config[iface].wifiPassword) : null;
@@ -144,13 +140,17 @@ slaac private
 
     Object.keys(config).forEach(iface => {
         const ifaceConfig = config[iface];
-        const dns = ifaceConfig.dns && ifaceConfig.dns.join(' ').trim() ?
-            `static domain_name_servers=${ifaceConfig.dns.join(' ')}` : '';
+        const dns =
+            ifaceConfig.dns && ifaceConfig.dns.join(' ').trim()
+                ? `static domain_name_servers=${ifaceConfig.dns.join(' ')}`
+                : '';
 
-        interfaces += ifaceConfig.dhcp ? `
-        ` : `
+        interfaces += ifaceConfig.dhcp
+            ? `
+        `
+            : `
 interface ${iface}
-static ip_address=${ifaceConfig.ip4}/${new Netmask(ifaceConfig.ip4 + '/' + ifaceConfig.ip4subnet).bitmask}
+static ip_address=${ifaceConfig.ip4}/${new Netmask(`${ifaceConfig.ip4}/${ifaceConfig.ip4subnet}`).bitmask}
 static routers=${ifaceConfig.ip4gateway}
 ${dns}
 # static ip6_address=${ifaceConfig.ip6}/${ifaceConfig.ip6subnet}
@@ -186,7 +186,7 @@ const getWiFi = async () => {
         iwlist.split('\n').forEach(line => {
             line = line.trim();
             if (line.startsWith('Cell')) {
-                currentNetwork = {security: []};
+                currentNetwork = { security: [] };
                 networks.push(currentNetwork);
             }
             let matches;
@@ -215,14 +215,14 @@ const getWiFiConnections = async () => {
     let ssid = null;
     try {
         ssid = await justExec('iwgetid -r');
-    } catch (e) {
+    } catch {
         //adapter.log.warn('Cannot execute "iwgetid": ' + e);
     }
-    return ssid ? [{ssid}] : [];
+    return ssid ? [{ ssid }] : [];
 };
 
 const consoleGetInterfaces = async () =>
-    (await justExec('ip a | grep -P \'^[0-9]+:\''))
+    (await justExec("ip a | grep -P '^[0-9]+:'"))
         .split('\n')
         .map(iface => iface.match(/^[0-9]+: (.*?):/)[1])
         .filter(iface => iface !== 'lo');
@@ -232,10 +232,14 @@ const triggers = {
         si.networkInterfaces(async result => {
             if (process.platform === 'win32') {
                 const nativeInterfaces = networkInterfaces();
-                response(result.map(interfaceItem => {
-                    interfaceItem.iface = Object.keys(nativeInterfaces).find(key => nativeInterfaces[key][0].mac === interfaceItem.mac);
-                    return interfaceItem;
-                }));
+                response(
+                    result.map(interfaceItem => {
+                        interfaceItem.iface = Object.keys(nativeInterfaces).find(
+                            key => nativeInterfaces[key][0].mac === interfaceItem.mac,
+                        );
+                        return interfaceItem;
+                    }),
+                );
             } else {
                 const consoleInterfaces = (await consoleGetInterfaces()).map(consoleInterface => ({
                     iface: consoleInterface,
@@ -290,7 +294,7 @@ const triggers = {
     dns: (input, response) => {
         response(dns.getServers());
     },
-    changeDns: (input/*, response*/) => {
+    changeDns: (input /*, response*/) => {
         console.log(input.data);
     },
     wifiConnections: async (input, response) => {
@@ -302,39 +306,39 @@ const triggers = {
     },
     wifiConnect: async (input, response) => {
         if (process.platform === 'win32') {
-            wifi.init({iface: null});
+            wifi.init({ iface: null });
 
             wifi.connect({ ssid: input.ssid, password: input.password }, error => {
                 if (error) {
-                    response({result: false, error: error});
+                    response({ result: false, error: error });
                 } else {
-                    response({result: true});
+                    response({ result: true });
                 }
             });
         } else {
             await wifiConnect(input.ssid, input.password, input.iface);
 
             try {
-                response({result: (await justExec('iwgetid -r')) === 'input.ssid'});
-            } catch (err) {
-                response({result: true});
+                response({ result: (await justExec('iwgetid -r')) === 'input.ssid' });
+            } catch {
+                response({ result: true });
             }
         }
     },
     wifiDisconnect: async (input, response) => {
         if (process.platform === 'win32') {
-            wifi.init({iface: null});
+            wifi.init({ iface: null });
 
             await wifi.disconnect(error => {
                 if (error) {
-                    response({result: false, error: error});
+                    response({ result: false, error: error });
                 } else {
-                    response({result: true});
+                    response({ result: true });
                 }
             });
         } else {
             wifiDisconnect(input.iface);
-            response({result: true});
+            response({ result: true });
         }
     },
     changeInterface: async (input, response) => {
@@ -377,40 +381,43 @@ function waitForEnd(callback, _started) {
 
 /**
  * Starts the adapter instance
+ *
  * @param {Partial<utils.AdapterOptions>} [options]
  */
 function startAdapter(options) {
     // Create the adapter and define its methods
-    return adapter = utils.adapter(Object.assign({}, options, {
-        name: adapterName,
+    return (adapter = utils.adapter(
+        Object.assign({}, options, {
+            name: adapterName,
 
-        // The ready callback is called when databases are connected and adapter received configuration.
-        // start here!
-        ready: async () => {
-            await main();
-        },
-        unload: callback => {
-            stopping = true;
-            adapter.setState('info.connection', false, true);
-            waitForEnd(timeout => {
-                timeout && adapter.log.warn('Timeout by waiting of command: ' + cmdRunning);
-                callback && callback();
-            });
-        },
-        message: obj => {
-            if (typeof obj === 'object' && obj.callback) {
-                const response = result => {
-                    adapter.sendTo(obj.from, obj.command, result, obj.callback);
-                };
+            // The ready callback is called when databases are connected and adapter received configuration.
+            // start here!
+            ready: async () => {
+                await main();
+            },
+            unload: callback => {
+                stopping = true;
+                adapter.setState('info.connection', false, true);
+                waitForEnd(timeout => {
+                    timeout && adapter.log.warn(`Timeout by waiting of command: ${cmdRunning}`);
+                    callback && callback();
+                });
+            },
+            message: obj => {
+                if (typeof obj === 'object' && obj.callback) {
+                    const response = result => {
+                        adapter.sendTo(obj.from, obj.command, result, obj.callback);
+                    };
 
-                if (triggers[obj.command]) {
-                    triggers[obj.command](obj.message, response);
-                } else {
-                    // error
+                    if (triggers[obj.command]) {
+                        triggers[obj.command](obj.message, response);
+                    } else {
+                        // error
+                    }
                 }
-            }
-        }
-    }));
+            },
+        }),
+    ));
 }
 
 async function main() {
@@ -427,7 +434,7 @@ async function main() {
         const template = {};
         for (const k in interfaces) {
             template[interfaces[k]] = {
-                dhcp: true
+                dhcp: true,
             };
         }
         // create dir
@@ -440,7 +447,7 @@ async function main() {
     for (const k in interfaces) {
         if (!config[interfaces[k]]) {
             config[interfaces[k]] = {
-                dhcp: true
+                dhcp: true,
             };
             fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
         }
@@ -474,7 +481,6 @@ async function main() {
     }*/
 }
 
-// @ts-ignore parent is a valid property on module
 if (module.parent) {
     // Export startAdapter in compact mode
     module.exports = startAdapter;

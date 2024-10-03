@@ -4,69 +4,21 @@
  */
 'use strict';
 
-const gulp      = require('gulp');
-const fs        = require('fs');
-const cp        = require('child_process');
-
-function deleteFoldersRecursive(path, exceptions) {
-    if (fs.existsSync(path)) {
-        const files = fs.readdirSync(path);
-        for (const file of files) {
-            const curPath = `${path}/${file}`;
-            if (exceptions && exceptions.find(e => curPath.endsWith(e))) {
-                continue;
-            }
-
-            const stat = fs.statSync(curPath);
-            if (stat.isDirectory()) {
-                deleteFoldersRecursive(curPath);
-                fs.rmdirSync(curPath);
-            } else {
-                fs.unlinkSync(curPath);
-            }
-        }
-    }
-}
+const gulp = require('gulp');
+const fs = require('node:fs');
+const cp = require('node:child_process');
+const { deleteFoldersRecursive, npmInstall, patchHtmlFile } = require('@iobroker/build-tools');
 
 gulp.task('clean', done => {
     deleteFoldersRecursive(`${__dirname}/admin`, ['network-settings.png']);
     done();
 });
 
-function npmInstall() {
-    return new Promise((resolve, reject) => {
-        // Install node modules
-        const cwd = __dirname.replace(/\\/g, '/') + '/src/';
-
-        const cmd = `npm install -f`;
-        console.log(`"${cmd} in ${cwd}`);
-
-        // System call used for update of js-controller itself,
-        // because during the installation of the npm packet will be deleted too, but some files must be loaded even during the installation process.
-        const child = cp.exec(cmd, {cwd});
-
-        child.stderr.pipe(process.stderr);
-        child.stdout.pipe(process.stdout);
-
-        child.on('exit', (code /* , signal */) => {
-            // code 1 is a strange error that cannot be explained. Everything is installed but error :(
-            if (code && code !== 1) {
-                reject('Cannot install: ' + code);
-            } else {
-                console.log(`"${cmd} in ${cwd} finished.`);
-                // command succeeded
-                resolve();
-            }
-        });
-    });
-}
-
 gulp.task('2-npm', () => {
     if (fs.existsSync(`${__dirname}/src/node_modules`)) {
         return Promise.resolve();
-    } else {
-        return npmInstall();
     }
+    return npmInstall(`${__dirname}/src`);
 });
 
 gulp.task('2-npm-dep', gulp.series('clean', '2-npm'));
@@ -75,7 +27,7 @@ function build() {
     return new Promise((resolve, reject) => {
         const options = {
             stdio: 'pipe',
-            cwd:   `${__dirname}/src/`
+            cwd: `${__dirname}/src/`,
         };
 
         const version = JSON.parse(fs.readFileSync(`${__dirname}/package.json`).toString('utf8')).version;
@@ -108,31 +60,24 @@ gulp.task('3-build', () => build());
 
 gulp.task('3-build-dep', gulp.series('2-npm-dep', '3-build'));
 
-gulp.task('5-copy', () =>
-    gulp.src(['src/build/*/**', 'src/build/*'])
-        .pipe(gulp.dest('admin/')));
+gulp.task('5-copy', () => gulp.src(['src/build/*/**', 'src/build/*']).pipe(gulp.dest('admin/')));
 
 gulp.task('5-copy-dep', gulp.series('3-build-dep', '5-copy'));
 
-gulp.task('6-patch', () => new Promise(resolve => {
+gulp.task('6-patch', async () => {
     if (fs.existsSync(`${__dirname}/admin/index.html`)) {
-        let code = fs.readFileSync(`${__dirname}/admin/index.html`).toString('utf8');
-        code = code.replace(/<script>var script=document\.createElement\("script"\)[^<]+<\/script>/,
-            `<script type="text/javascript" src="./../../lib/js/socket.io.js"></script>`);
-
+        await patchHtmlFile(`${__dirname}/admin/index.html`);
+        const code = fs.readFileSync(`${__dirname}/admin/index.html`);
         fs.unlinkSync(`${__dirname}/admin/index.html`);
         fs.writeFileSync(`${__dirname}/admin/index_m.html`, code);
     }
     if (fs.existsSync(`${__dirname}/src/build/index.html`)) {
-        let code = fs.readFileSync(`${__dirname}/src/build/index.html`).toString('utf8');
-        code = code.replace(/<script>var script=document\.createElement\("script"\)[^<]+<\/script>/,
-            `<script type="text/javascript" src="./../../lib/js/socket.io.js"></script>`);
-
+        await patchHtmlFile(`${__dirname}/src/build/index.html`);
+        const code = fs.readFileSync(`${__dirname}/src/build/index.html`);
         fs.writeFileSync(`${__dirname}/src/build/index.html`, code);
     }
-    resolve();
-}));
+});
 
-gulp.task('6-patch-dep',  gulp.series('5-copy-dep', '6-patch'));
+gulp.task('6-patch-dep', gulp.series('5-copy-dep', '6-patch'));
 
 gulp.task('default', gulp.series('6-patch-dep'));
