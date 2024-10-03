@@ -17,7 +17,6 @@ let cmdRunning = false;
 /**
  * The adapter instance
  *
- * @type {ioBroker.Adapter}
  */
 let adapter;
 
@@ -382,7 +381,7 @@ function waitForEnd(callback, _started) {
 /**
  * Starts the adapter instance
  *
- * @param {Partial<utils.AdapterOptions>} [options]
+ * @param options Adapter options
  */
 function startAdapter(options) {
     // Create the adapter and define its methods
