@@ -21,14 +21,17 @@ This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi an
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+
+- (@GermanBluefox) Change name to "network-settings"
 
 ### 0.3.0 (2023-06-27)
 
--   (bluefox) Change name to "network-settings"
+-   (@GermanBluefox) Change name to "network-settings"
 
 ### 0.2.2 (2023-06-27)
 
--   (bluefox) Updated the GUI to the latest version
+-   (@GermanBluefox) Updated the GUI to the latest version
 
 ### 0.1.0 (2021-01-18)
 
@@ -42,7 +45,7 @@ This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi an
 
 MIT License
 
-Copyright (c) 2021-2024 bluefox <dogafox@gmail.com>
+Copyright (c) 2021-2024 @GermanBluefox <dogafox@gmail.com>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
