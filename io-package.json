@@ -131,7 +131,6 @@
       "raspberry",
       "pi"
     ],
-    "license": "MIT",
     "platform": "Javascript/Node.js",
     "main": "dist/main.js",
     "icon": "wireless-settings.png",
