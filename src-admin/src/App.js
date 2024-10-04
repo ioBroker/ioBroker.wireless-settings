@@ -544,7 +544,7 @@ class App extends GenericApp {
                             {getWiFiIcon(wifi.security.includes('--'), parseInt(wifi.quality))}
                         </Tooltip>
                         {wifi.ssid}
-                        <div style={{ styles.speed }}>{wifi.speed}</div>
+                        <div style={styles.speed}>{wifi.speed}</div>
                     </Button>
                     {connected ? (
                         <Button

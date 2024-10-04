@@ -13,7 +13,7 @@
 
 ## Adapter for Wi-Fi and wireless settings on Raspberry Pi
 
-This adapter can set up the wireless on Raspberry Pi. It can be used for Wi-Fi and for LAN.
+This adapter can set up the wireless on Raspberry Pi. It can be used to connect or disconnect from wireless networks.
 
 ## Required permissions
 This adapter assumes that `iobroker` user may execute the following commands:

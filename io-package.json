@@ -1,145 +1,166 @@
 {
-    "common": {
-        "name": "wireless-settings",
-        "version": "0.4.2",
-        "news": {
-            "0.4.2": {
-                "en": "Updated for raspberry 5",
-                "de": "Aktualisiert für Himbeere 5",
-                "ru": "Обновлено для малины 5",
-                "pt": "Atualizado para framboesa 5",
-                "nl": "Bijgewerkt voor framboos 5",
-                "fr": "Mise à jour pour framboise 5",
-                "it": "Aggiornato per lampone 5",
-                "es": "Actualizado para frambuesa 5",
-                "pl": "Aktualizacja dla malin 5",
-                "uk": "Ажурирано для малини 5",
-                "zh-cn": "草莓5更新"
-            },
-            "0.4.0": {
-                "en": "Change name to \"network-settings\"",
-                "de": "Name auf \"Netzwerkeinstellungen\" ändern",
-                "ru": "Изменить название на \"сетевые настройки\"",
-                "pt": "Mudar o nome para \"configurações de rede\"",
-                "nl": "Naam wijzigen naar \"netwerkinstellingen\"",
-                "fr": "Modifier le nom en \"réglages réseau\"",
-                "it": "Cambia il nome in \"network-settings\"",
-                "es": "Cambiar el nombre a \"rededores\"",
-                "pl": "Zmień nazwę na \"network- settings\"",
-                "uk": "Змінити назву на \"мережеві налаштування\"",
-                "zh-cn": "更改名称为“ 网络设置 ”"
-            },
-            "0.3.0": {
-                "en": "Change name to \"network-settings\"",
-                "de": "Name auf Netzwerkeinstellungen ändern",
-                "ru": "Изменить имя в сетевых настройках",
-                "pt": "Alterar o nome para configurações de rede",
-                "nl": "Veranderingsnaam naar netwerk-settingen",
-                "fr": "Changer de nom aux réglages de réseau",
-                "it": "Cambia nome alle impostazioni di rete",
-                "es": "Cambiar el nombre a las estaciones de red",
-                "pl": "Zmiana nazwy na składowanie sieci",
-                "uk": "Зміна імені в мережевих налаштуваннях",
-                "zh-cn": "网络设计的更改名称"
-            },
-            "0.2.2": {
-                "en": "Updated the GUI to the latest version",
-                "de": "Aktualisiert die GUI auf die neueste Version",
-                "ru": "Обновлено GUI до последней версии",
-                "pt": "Atualizado o GUI para a versão mais recente",
-                "nl": "Verhoogde de GUI naar de nieuwste versie",
-                "fr": "Mise à jour de l'interface graphique à la dernière version",
-                "it": "Aggiornato la GUI alla versione più recente",
-                "es": "Actualizado el GUI a la última versión",
-                "pl": "Ulepszona wersja GUI do najnowszej wersji",
-                "uk": "Оновлено GUI в останню версію",
-                "zh-cn": "A. 最新版本的《古伊》更新"
-            },
-            "0.1.0": {
-                "en": "initial release",
-                "de": "Erstveröffentlichung",
-                "ru": "Начальная версия",
-                "pt": "lançamento inicial",
-                "nl": "Eerste uitgave",
-                "fr": "Première version",
-                "it": "Versione iniziale",
-                "es": "Versión inicial",
-                "pl": "Pierwsze wydanie",
-                "zh-cn": "首次出版"
-            }
-        },
-        "titleLang": {
-            "en": "Wireless settings",
-            "de": "WLAN-Einstellungen",
-            "ru": "Настройки беспроводной связи",
-            "pt": "Configurações sem fio",
-            "nl": "Draadloze instellingen",
-            "fr": "Paramètres sans fil",
-            "it": "Impostazioni wireless",
-            "es": "Configuración inalámbrica",
-            "pl": "Ustawienia bezprzewodowe",
-            "uk": "Бездротові налаштування",
-            "zh-cn": "无线设置"
-        },
-        "desc": {
-            "en": "Wireless settings for Raspberry Pi",
-            "de": "WLAN-Einstellungen für Raspberry Pi",
-            "ru": "Настройки беспроводной связи для Raspberry Pi",
-            "pt": "Configurações sem fio para Raspberry Pi",
-            "nl": "Draadloze instellingen voor Raspberry Pi",
-            "fr": "Paramètres sans fil pour Raspberry Pi",
-            "it": "Impostazioni wireless per Raspberry Pi",
-            "es": "Configuración inalámbrica para Raspberry Pi",
-            "pl": "Ustawienia bezprzewodowe dla Raspberry Pi",
-            "uk": "Налаштування бездротового зв'язку для Raspberry Pi",
-            "zh-cn": "树莓派的无线设置"
-        },
-        "authors": ["ioBroker <dogafox@gmail.com>"],
-        "keywords": ["network", "wireless", "wlan", "raspberry", "pi"],
-        "license": "MIT",
-        "platform": "Javascript/Node.js",
-        "main": "dist/main.js",
-        "icon": "wireless-settings.png",
-        "enabled": true,
-        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.wireless-settings/master/admin/wireless-settings.png",
-        "readme": "https://github.com/ioBroker/ioBroker.wireless-settings/blob/master/README.md",
-        "loglevel": "info",
-        "mode": "daemon",
-        "type": "communication",
-        "compact": true,
-        "materialize": true,
-        "messagebox": true,
-        "connectionType": "local",
-        "dataSource": "none",
-        "licenseInformation": {
-            "license": "MIT",
-            "type": "free"
-        },
-        "tier": 3
+  "common": {
+    "name": "wireless-settings",
+    "version": "0.5.0",
+    "news": {
+      "0.5.0": {
+        "en": "Updated for raspberry 5\nChange name to \"wireless-settings\"",
+        "de": "Aktualisiert für Himbeere 5\nName auf \"wireless-settings\" ändern",
+        "ru": "Обновлено для малины 5\nИзменить название на «беспроводные настройки»",
+        "pt": "Atualizado para framboesa 5\nMudar o nome para \"configurações sem fio\"",
+        "nl": "Bijgewerkt voor framboos 5\nNaam wijzigen naar \"draadloze instellingen\"",
+        "fr": "Mise à jour pour framboise 5\nChanger le nom en \"réglages sans fil\"",
+        "it": "Aggiornato per lampone 5\nCambia il nome in \"wireless-settings\"",
+        "es": "Actualizado para frambuesa 5\nCambiar el nombre a \"ajustes sin sentido\"",
+        "pl": "Aktualizacja dla malin 5\nZmień nazwę na \"wireless- settings\"",
+        "uk": "Ажурирано для малини 5\nЗмінити назву на \"безкоштовні налаштування\"",
+        "zh-cn": "草莓5更新\n将名称改为“ 无线设置 ”"
+      },
+      "0.4.2": {
+        "en": "Updated for raspberry 5",
+        "de": "Aktualisiert für Himbeere 5",
+        "ru": "Обновлено для малины 5",
+        "pt": "Atualizado para framboesa 5",
+        "nl": "Bijgewerkt voor framboos 5",
+        "fr": "Mise à jour pour framboise 5",
+        "it": "Aggiornato per lampone 5",
+        "es": "Actualizado para frambuesa 5",
+        "pl": "Aktualizacja dla malin 5",
+        "uk": "Ажурирано для малини 5",
+        "zh-cn": "草莓5更新"
+      },
+      "0.4.0": {
+        "en": "Change name to \"network-settings\"",
+        "de": "Name auf \"Netzwerkeinstellungen\" ändern",
+        "ru": "Изменить название на \"сетевые настройки\"",
+        "pt": "Mudar o nome para \"configurações de rede\"",
+        "nl": "Naam wijzigen naar \"netwerkinstellingen\"",
+        "fr": "Modifier le nom en \"réglages réseau\"",
+        "it": "Cambia il nome in \"network-settings\"",
+        "es": "Cambiar el nombre a \"rededores\"",
+        "pl": "Zmień nazwę na \"network- settings\"",
+        "uk": "Змінити назву на \"мережеві налаштування\"",
+        "zh-cn": "更改名称为“ 网络设置 ”"
+      },
+      "0.3.0": {
+        "en": "Change name to \"network-settings\"",
+        "de": "Name auf Netzwerkeinstellungen ändern",
+        "ru": "Изменить имя в сетевых настройках",
+        "pt": "Alterar o nome para configurações de rede",
+        "nl": "Veranderingsnaam naar netwerk-settingen",
+        "fr": "Changer de nom aux réglages de réseau",
+        "it": "Cambia nome alle impostazioni di rete",
+        "es": "Cambiar el nombre a las estaciones de red",
+        "pl": "Zmiana nazwy na składowanie sieci",
+        "uk": "Зміна імені в мережевих налаштуваннях",
+        "zh-cn": "网络设计的更改名称"
+      },
+      "0.2.2": {
+        "en": "Updated the GUI to the latest version",
+        "de": "Aktualisiert die GUI auf die neueste Version",
+        "ru": "Обновлено GUI до последней версии",
+        "pt": "Atualizado o GUI para a versão mais recente",
+        "nl": "Verhoogde de GUI naar de nieuwste versie",
+        "fr": "Mise à jour de l'interface graphique à la dernière version",
+        "it": "Aggiornato la GUI alla versione più recente",
+        "es": "Actualizado el GUI a la última versión",
+        "pl": "Ulepszona wersja GUI do najnowszej wersji",
+        "uk": "Оновлено GUI в останню версію",
+        "zh-cn": "A. 最新版本的《古伊》更新"
+      },
+      "0.1.0": {
+        "en": "initial release",
+        "de": "Erstveröffentlichung",
+        "ru": "Начальная версия",
+        "pt": "lançamento inicial",
+        "nl": "Eerste uitgave",
+        "fr": "Première version",
+        "it": "Versione iniziale",
+        "es": "Versión inicial",
+        "pl": "Pierwsze wydanie",
+        "zh-cn": "首次出版"
+      }
     },
-    "native": {},
-    "objects": [],
-    "instanceObjects": [
-        {
-            "_id": "info",
-            "type": "channel",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info.connection",
-            "type": "state",
-            "common": {
-                "role": "indicator.connected",
-                "name": "Device or service connected",
-                "type": "boolean",
-                "read": true,
-                "write": false,
-                "def": false
-            },
-            "native": {}
-        }
-    ]
+    "titleLang": {
+      "en": "Wireless settings",
+      "de": "WLAN-Einstellungen",
+      "ru": "Настройки беспроводной связи",
+      "pt": "Configurações sem fio",
+      "nl": "Draadloze instellingen",
+      "fr": "Paramètres sans fil",
+      "it": "Impostazioni wireless",
+      "es": "Configuración inalámbrica",
+      "pl": "Ustawienia bezprzewodowe",
+      "uk": "Бездротові налаштування",
+      "zh-cn": "无线设置"
+    },
+    "desc": {
+      "en": "Wireless settings for Raspberry Pi",
+      "de": "WLAN-Einstellungen für Raspberry Pi",
+      "ru": "Настройки беспроводной связи для Raspberry Pi",
+      "pt": "Configurações sem fio para Raspberry Pi",
+      "nl": "Draadloze instellingen voor Raspberry Pi",
+      "fr": "Paramètres sans fil pour Raspberry Pi",
+      "it": "Impostazioni wireless per Raspberry Pi",
+      "es": "Configuración inalámbrica para Raspberry Pi",
+      "pl": "Ustawienia bezprzewodowe dla Raspberry Pi",
+      "uk": "Налаштування бездротового зв'язку для Raspberry Pi",
+      "zh-cn": "树莓派的无线设置"
+    },
+    "authors": [
+      "ioBroker <dogafox@gmail.com>"
+    ],
+    "keywords": [
+      "network",
+      "wireless",
+      "wlan",
+      "raspberry",
+      "pi"
+    ],
+    "license": "MIT",
+    "platform": "Javascript/Node.js",
+    "main": "dist/main.js",
+    "icon": "wireless-settings.png",
+    "enabled": true,
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.wireless-settings/master/admin/wireless-settings.png",
+    "readme": "https://github.com/ioBroker/ioBroker.wireless-settings/blob/master/README.md",
+    "loglevel": "info",
+    "mode": "daemon",
+    "type": "communication",
+    "compact": true,
+    "materialize": true,
+    "messagebox": true,
+    "connectionType": "local",
+    "dataSource": "none",
+    "licenseInformation": {
+      "license": "MIT",
+      "type": "free"
+    },
+    "tier": 3
+  },
+  "native": {},
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.connection",
+      "type": "state",
+      "common": {
+        "role": "indicator.connected",
+        "name": "Device or service connected",
+        "type": "boolean",
+        "read": true,
+        "write": false,
+        "def": false
+      },
+      "native": {}
+    }
+  ]
 }
