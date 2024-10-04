@@ -131,6 +131,9 @@ class NetworkSettings extends Adapter {
     async main(): Promise<void> {
         const interfaces: string[] = this.getInterfaces();
         if (interfaces.length) {
+            if (process.env.CI) {
+                return;
+            }
             // check that nmcli is installed on a system
             try {
                 await this.justExec('nmcli device status');

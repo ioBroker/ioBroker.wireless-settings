@@ -15,7 +15,7 @@
 
 This adapter can set up the wireless on Raspberry Pi. It can be used to connect or disconnect from wireless networks.
 
-** Tested only on Raspberry Pi 5 **
+**Tested only on Raspberry Pi 5**
 
 ## Required permissions
 
