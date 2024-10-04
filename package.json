@@ -1,6 +1,6 @@
 {
   "name": "iobroker.wireless-settings",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "This adapter is used to anonymously collect the data on the central server for scientific research",
   "author": {
     "name": "bluefox",
