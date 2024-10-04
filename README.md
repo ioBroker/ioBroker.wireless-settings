@@ -33,7 +33,7 @@ sudo /opt/iobroker/node_modules/iobroker.wireless-settings/wlan_rights.sh
 -->
 
 ## Changelog
-### 0.4.2 (2024-10-03)
+### **WORK IN PROGRESS**
 
 - (@GermanBluefox) Updated for raspberry 5
 - (@GermanBluefox) Change name to "wireless-settings"
