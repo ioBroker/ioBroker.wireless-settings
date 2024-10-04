@@ -84,7 +84,7 @@ const getWiFiIcon = (open, quality) => {
     if (quality > 60) {
         return open ? <SignalWifi3BarIcon style={style} /> : <SignalWifi3BarLockIcon style={style} />;
     }
-    if (quality > 30    ) {
+    if (quality > 30) {
         return open ? <SignalWifi2BarIcon style={style} /> : <SignalWifi2BarLockIcon style={style} />;
     }
     return open ? <SignalWifi1BarIcon style={style} /> : <SignalWifi1BarLockIcon style={style} />;
