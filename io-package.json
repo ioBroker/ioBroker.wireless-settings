@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "wireless-settings",
-    "version": "0.6.4",
+    "version": "1.0.0",
     "news": {
+      "1.0.0": {
+        "en": "Updated for raspberry 5\nChange name to \"wireless-settings\"",
+        "de": "Aktualisiert für Himbeere 5\nName auf \"wireless-settings\" ändern",
+        "ru": "Обновлено для малины 5\nИзменить название на «беспроводные настройки»",
+        "pt": "Atualizado para framboesa 5\nMudar o nome para \"configurações sem fio\"",
+        "nl": "Bijgewerkt voor framboos 5\nNaam wijzigen naar \"draadloze instellingen\"",
+        "fr": "Mise à jour pour framboise 5\nChanger le nom en \"réglages sans fil\"",
+        "it": "Aggiornato per lampone 5\nCambia il nome in \"wireless-settings\"",
+        "es": "Actualizado para frambuesa 5\nCambiar el nombre a \"ajustes sin sentido\"",
+        "pl": "Aktualizacja dla malin 5\nZmień nazwę na \"wireless- settings\"",
+        "uk": "Ажурирано для малини 5\nЗмінити назву на \"безкоштовні налаштування\"",
+        "zh-cn": "草莓5更新\n将名称改为“ 无线设置 ”"
+      },
       "0.6.4": {
         "en": "Updated for raspberry 5\nChange name to \"wireless-settings\"",
         "de": "Aktualisiert für Himbeere 5\nName auf \"wireless-settings\" ändern",
@@ -80,19 +93,6 @@
         "pl": "Aktualizacja dla malin 5\nZmień nazwę na \"wireless- settings\"",
         "uk": "Ажурирано для малини 5\nЗмінити назву на \"безкоштовні налаштування\"",
         "zh-cn": "草莓5更新\n将名称改为“ 无线设置 ”"
-      },
-      "0.4.2": {
-        "en": "Updated for raspberry 5",
-        "de": "Aktualisiert für Himbeere 5",
-        "ru": "Обновлено для малины 5",
-        "pt": "Atualizado para framboesa 5",
-        "nl": "Bijgewerkt voor framboos 5",
-        "fr": "Mise à jour pour framboise 5",
-        "it": "Aggiornato per lampone 5",
-        "es": "Actualizado para frambuesa 5",
-        "pl": "Aktualizacja dla malin 5",
-        "uk": "Ажурирано для малини 5",
-        "zh-cn": "草莓5更新"
       }
     },
     "titleLang": {
