@@ -22,7 +22,7 @@ interface NetworkInterface {
     gateway: string;
     dhcp: boolean;
     dns: string[];
-    type: 'wireless' | 'wired';
+    type: 'ethernet' | 'loopback' | 'wifi' | 'wifi-p2p';
     editable: false;
     status: ConnectionState;
 }
@@ -126,7 +126,21 @@ class NetworkSettings extends Adapter {
     async main(): Promise<void> {
         const interfaces: string[] = this.getInterfaces();
         if (interfaces.length) {
-            await this.setState('info.connection', true, true);
+            // check that nmcli is installed on a system
+            try {
+                await this.justExec('nmcli device status');
+                await this.setState('info.connection', true, true);
+            } catch (e) {
+                const lines = await this.justExec('which nmcli');
+                this.log.error('This adapter is only for Raspberry Pi (5) or for systems where "nmcli" is installed');
+                if (!lines) {
+                    this.log.error(
+                        'Cannot find "nmcli": Please be sure that "nmcli" is installed and user "iobroker" may execute it with sudo rights',
+                    );
+                } else {
+                    this.log.error(`Cannot execute nmcli: ${e}`);
+                }
+            }
         }
     }
 
@@ -179,7 +193,6 @@ class NetworkSettings extends Adapter {
             const gateway = '';
             const dns = getDnsServers();
             const dhcp = false;
-            const type = iface[0] === 'w' ? 'wireless' : 'wired';
             result.push({
                 iface,
                 ip4: ip4?.address || '',
@@ -190,7 +203,7 @@ class NetworkSettings extends Adapter {
                 gateway,
                 dns,
                 dhcp,
-                type,
+                type: 'ethernet',
                 status: 'disconnected',
                 editable: false,
             });
@@ -208,6 +221,22 @@ class NetworkSettings extends Adapter {
             const item = result.find(item => item.iface === items[i].DEVICE);
             if (item) {
                 item.status = items[i].STATE.split(' ')[0] as ConnectionState;
+                item.type = items[i].TYPE as 'ethernet' | 'loopback' | 'wifi' | 'wifi-p2p';
+            } else if (items[i].TYPE !== 'loopback' && items[i].TYPE !== 'wifi-p2p') {
+                result.push({
+                    iface: items[i].DEVICE,
+                    status: items[i].STATE.split(' ')[0] as ConnectionState,
+                    ip4: '',
+                    ip4subnet: '',
+                    ip6: '',
+                    ip6subnet: '',
+                    mac: '',
+                    gateway: '',
+                    dns: [],
+                    dhcp: false,
+                    type: items[i].TYPE as 'ethernet' | 'loopback' | 'wifi' | 'wifi-p2p',
+                    editable: false,
+                });
             }
         }
 
@@ -312,9 +341,9 @@ class NetworkSettings extends Adapter {
         return '';
     }
 
-    async onWifiConnect(input: { ssid: string; password: string; iface: string }): Promise<boolean> {
+    async onWifiConnect(input: { ssid: string; password: string; iface: string }): Promise<true | string> {
         if (this.stopping) {
-            return false;
+            return 'Instance is stopping';
         }
         try {
             let result = await this.justExec(`nmcli radio wifi`);
@@ -331,20 +360,31 @@ class NetworkSettings extends Adapter {
                 `nmcli device wifi connect "${input.ssid}" password "${input.password}" ifname "${input.iface}"`,
             );
             this.log.debug(`Set wifi "${input.ssid}" on "${input.iface} => ${result}`);
-            return result.includes('successfully');
+            if (result.includes('successfully')) {
+                return true;
+            }
+            return result;
         } catch (e) {
-            this.log.error(`Cannot set wifi: ${e}`);
+            this.log.error(`Cannot connect to wifi: ${e}`);
+            return `Cannot connect to wifi: ${e}`;
         }
-        return false;
     }
 
-    async onWifiDisconnect(input: { ssid: string }): Promise<boolean> {
+    async onWifiDisconnect(input: { ssid: string }): Promise<true | string> {
         if (this.stopping) {
-            return false;
+            return 'Instance is stopping';
         }
-        const result = await this.sudo(`nmcli connection down id "${input.ssid}"`);
-        this.log.debug(`Disable wifi "${input.ssid}" => ${result}`);
-        return result.includes('successfully');
+        try {
+            const result = await this.sudo(`nmcli connection down id "${input.ssid}"`);
+            this.log.debug(`Disable wifi "${input.ssid}" => ${result}`);
+            if (result.includes('successfully')) {
+                return true;
+            }
+            return result;
+        } catch (e) {
+            this.log.error(`Cannot disconnect from wifi: ${e}`);
+            return `Cannot disconnect from wifi: ${e}`;
+        }
     }
 }
 

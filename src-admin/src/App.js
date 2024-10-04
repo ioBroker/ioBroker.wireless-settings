@@ -55,8 +55,10 @@ const styles = {
         overflow: 'auto',
         height: 'calc(100% - 64px)',
     },
-    tabContainer: {
+    tabLabel: {
         display: 'flex',
+        gap: 8,
+        alignItems: 'center',
     },
     buttonIcon: {
         marginLeft: 10,
@@ -72,6 +74,9 @@ const styles = {
         opacity: 0.5,
         fontSize: 10,
         fontStyle: 'italic',
+        position: 'absolute',
+        bottom: -5,
+        left: 50,
     },
 };
 
@@ -108,10 +113,12 @@ class App extends GenericApp {
         };
         extendedProps.doNotLoadAllObjects = true;
         extendedProps.adapterName = 'wireless-settings';
-        extendedProps.socket = {
-            host: '192.168.100.2',
-            port: 8081,
-        };
+        if (window.location.port === '3000') {
+            extendedProps.socket = {
+                host: '192.168.100.2',
+                port: 8081,
+            };
+        }
 
         super(props, extendedProps);
 
@@ -165,7 +172,7 @@ class App extends GenericApp {
 
     async refreshCurrentSSID() {
         const ifc = this.state.interfaces.find(i => i.iface === this.state.tabValue);
-        if (ifc?.type !== 'wireless' || !this.state.alive) {
+        if (ifc?.type !== 'wifi' || !this.state.alive) {
             return new Promise(resolve => this.setState({ wifiConnection: '' }, () => resolve()));
         }
 
@@ -182,7 +189,7 @@ class App extends GenericApp {
         }
 
         const ifc = this.state.interfaces.find(i => i.iface === this.state.tabValue);
-        if (ifc?.type !== 'wireless' || !this.state.alive) {
+        if (ifc?.type !== 'wifi' || !this.state.alive) {
             return new Promise(resolve =>
                 this.setState({ wifi: [], scanning: false, timeout: false }, () => resolve()),
             );
@@ -252,7 +259,7 @@ class App extends GenericApp {
 
         interfaces.sort((item1, item2) => (item1.mac > item2.mac ? -1 : 1));
         interfaces.sort((item1, item2) =>
-            item1.type === 'wired' && item2.type === 'wired' ? 0 : item1.type === 'wired' ? -1 : 1,
+            item1.type === 'wifi' && item2.type === 'wifi' ? 0 : item1.type === 'wifi' ? -1 : 1,
         );
         interfaces.sort((item1, item2) => (!item1.virtual && !item2.virtual ? 0 : !item1.virtual ? -1 : 1));
         interfaces = interfaces.filter(interfaceItem => interfaceItem.ip4 !== '127.0.0.1');
@@ -261,6 +268,9 @@ class App extends GenericApp {
         if (!interfaces.find(i => i.iface === tabValue)) {
             if (interfaces.find(i => i.iface === 'wlan0')) {
                 tabValue = 'wlan0';
+            } else if (interfaces.find(i => i.type === 'wifi')) {
+                const i = interfaces.find(i => i.type === 'wifi');
+                tabValue = i.iface;
             } else {
                 tabValue = interfaces[0]?.iface || '';
             }
@@ -292,10 +302,10 @@ class App extends GenericApp {
                     iface: this.state.tabValue,
                 })
                 .then(result => {
-                    if (result) {
+                    if (result === true) {
                         enqueueSnackbar(`${ssid} ${I18n.t('connected')}`, { variant: 'success' });
                     } else {
-                        enqueueSnackbar(`${ssid} ${I18n.t('not connected')}`, { variant: 'error' });
+                        enqueueSnackbar(`${ssid} ${result}`, { variant: 'error' });
                     }
                     this.refresh().then(() => this.setState({ processing: false }));
                 }),
@@ -313,10 +323,10 @@ class App extends GenericApp {
                     ssid: this.state.wifiConnection || '',
                 })
                 .then(result => {
-                    if (result) {
+                    if (result === true) {
                         enqueueSnackbar(I18n.t('WI-FI disconnected'), { variant: 'success' });
                     } else {
-                        enqueueSnackbar(I18n.t('WI-FI disconnected'), { variant: 'error' });
+                        enqueueSnackbar(result, { variant: 'error' });
                     }
                     this.refresh().then(() => this.setState({ processing: false }));
                 }),
@@ -420,7 +430,7 @@ class App extends GenericApp {
 
         return (
             <div style={{ display: 'flex', gap: 32 }}>
-                <div>
+                <div style={{ minWidth: 195 }}>
                     {interfaceItem.ip4 ? <h4 style={{ marginTop: 8 }}>IPv4</h4> : null}
                     {interfaceItem.ip4 ? (
                         <TextField
@@ -485,7 +495,7 @@ class App extends GenericApp {
     }
 
     renderWireless(interfaceItem) {
-        if (interfaceItem?.type !== 'wireless') {
+        if (interfaceItem?.type !== 'wifi') {
             return null;
         }
 
@@ -539,12 +549,13 @@ class App extends GenericApp {
                                 }
                             })
                         }
+                        style={{ position: 'relative', paddingLeft: connected ? undefined : 16 }}
                     >
                         <Tooltip title={`${wifi.quality} dBm`}>
                             {getWiFiIcon(wifi.security.includes('--'), parseInt(wifi.quality))}
                         </Tooltip>
                         {wifi.ssid}
-                        <div style={styles.speed}>{wifi.speed}</div>
+                        <div style={{ ...styles.speed, bottom: connected ? -2 : -5 }}>{wifi.speed}</div>
                     </Button>
                     {connected ? (
                         <Button
@@ -609,8 +620,8 @@ class App extends GenericApp {
                                         value={interfaceItem.iface}
                                         key={i}
                                         label={
-                                            <div style={styles.tabContainer}>
-                                                {interfaceItem.type === 'wired' ? (
+                                            <div style={styles.tabLabel}>
+                                                {interfaceItem.type !== 'wifi' ? (
                                                     <SettingsInputComponentIcon
                                                         style={{
                                                             ...styles.buttonIcon,
