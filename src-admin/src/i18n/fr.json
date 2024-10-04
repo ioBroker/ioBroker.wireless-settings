@@ -30,5 +30,6 @@
   "connected": "connecté",
   "not connected": "non connecté",
   "Apply": "Appliquer",
-  "WI-FI password": "Mot de passe Wi-Fi"
+  "WI-FI password": "Mot de passe Wi-Fi",
+  "Instance is not running": "L'instance n'est pas en cours d'exécution"
 }

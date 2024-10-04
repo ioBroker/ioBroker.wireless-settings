@@ -30,5 +30,6 @@
   "connected": "połączony",
   "not connected": "nie połączony",
   "Apply": "Stosować",
-  "WI-FI password": "Hasło Wi-Fi"
+  "WI-FI password": "Hasło Wi-Fi",
+  "Instance is not running": "Instancja nie jest uruchomiona"
 }

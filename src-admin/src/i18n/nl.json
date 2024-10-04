@@ -30,5 +30,6 @@
   "connected": "aangesloten",
   "not connected": "niet verbonden",
   "Apply": "Toepassen",
-  "WI-FI password": "WI-FI-wachtwoord"
+  "WI-FI password": "WI-FI-wachtwoord",
+  "Instance is not running": "Instantie wordt niet uitgevoerd"
 }

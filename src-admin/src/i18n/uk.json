@@ -30,5 +30,6 @@
   "not connected": "не підключено",
   "seconds": "секунд",
   "Apply": "Застосувати",
-  "WI-FI password": "Пароль WI-FI"
+  "WI-FI password": "Пароль WI-FI",
+  "Instance is not running": "Екземпляр не запущено"
 }

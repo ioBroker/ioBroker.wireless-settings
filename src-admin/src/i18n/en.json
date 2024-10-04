@@ -30,5 +30,6 @@
   "seconds": "seconds",
   "De-bounces": "De-bounces",
   "debounce": "de-bounce",
-  "ms": "ms"
+  "ms": "ms",
+  "Instance is not running": "Instance is not running"
 }

@@ -30,5 +30,6 @@
   "connected": "collegato",
   "not connected": "non connesso",
   "Apply": "Fare domanda a",
-  "WI-FI password": "password WI-FI"
+  "WI-FI password": "password WI-FI",
+  "Instance is not running": "L'istanza non è in esecuzione"
 }

@@ -30,5 +30,6 @@
   "connected": "已连接",
   "not connected": "未连接",
   "Apply": "申请",
-  "WI-FI password": "WI-FI密码"
+  "WI-FI password": "WI-FI密码",
+  "Instance is not running": "实例未运行"
 }
