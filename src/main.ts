@@ -131,30 +131,31 @@ class NetworkSettings extends Adapter {
     async main(): Promise<void> {
         const interfaces: string[] = this.getInterfaces();
         if (interfaces.length) {
-            if (process.env.GITHUB_ACTION) {
-                this.log.warn('We are running in CI. Cannot check nmcli');
-                return;
-            }
-            console.log(`ENV: ${JSON.stringify(process.env)}`);
-            // check that nmcli is installed on a system
-            try {
-                await this.justExec('nmcli device status');
-                await this.setState('info.connection', true, true);
-            } catch (e) {
-                this.log.error('This adapter is only for Raspberry Pi (5) or for systems where "nmcli" is installed');
-                try {
-                    const lines = await this.justExec('which nmcli');
-                    if (!lines) {
-                        this.log.error(
-                            'Cannot find "nmcli": Please be sure that "nmcli" is installed and user "iobroker" may execute it with sudo rights',
-                        );
-                    } else {
-                        this.log.error(`Cannot execute nmcli: ${e}`);
-                    }
-                } catch (e) {
-                    this.log.error(`Cannot execute "which nmcli": ${e}`);
-                }
-            }
+            await this.setState('info.connection', true, true);
+            // if (process.env.GITHUB_ACTION) {
+            //     this.log.warn('We are running in CI. Cannot check nmcli');
+            //     return;
+            // }
+            // console.log(`ENV: ${JSON.stringify(process.env)}`);
+            // // check that nmcli is installed on a system
+            // try {
+            //     await this.justExec('nmcli device status');
+            //     await this.setState('info.connection', true, true);
+            // } catch (e) {
+            //     this.log.error('This adapter is only for Raspberry Pi (5) or for systems where "nmcli" is installed');
+            //     try {
+            //         const lines = await this.justExec('which nmcli');
+            //         if (!lines) {
+            //             this.log.error(
+            //                 'Cannot find "nmcli": Please be sure that "nmcli" is installed and user "iobroker" may execute it with sudo rights',
+            //             );
+            //         } else {
+            //             this.log.error(`Cannot execute nmcli: ${e}`);
+            //         }
+            //     } catch (e) {
+            //         this.log.error(`Cannot execute "which nmcli": ${e}`);
+            //     }
+            // }
         }
     }
 
