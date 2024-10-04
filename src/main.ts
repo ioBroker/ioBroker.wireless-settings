@@ -135,7 +135,7 @@ class NetworkSettings extends Adapter {
                 this.log.warn('We are running in CI. Cannot check nmcli');
                 return;
             }
-            this.log.error(`ENV: ${JSON.stringify(process.env)}`);
+            console.log(`ENV: ${JSON.stringify(process.env)}`);
             // check that nmcli is installed on a system
             try {
                 await this.justExec('nmcli device status');
@@ -152,7 +152,7 @@ class NetworkSettings extends Adapter {
                         this.log.error(`Cannot execute nmcli: ${e}`);
                     }
                 } catch (e) {
-                    this.log.error(`Cannot execute nmcli: ${e}`);
+                    this.log.error(`Cannot execute "which nmcli": ${e}`);
                 }
             }
         }
