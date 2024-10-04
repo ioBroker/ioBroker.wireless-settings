@@ -131,7 +131,7 @@ class NetworkSettings extends Adapter {
     async main(): Promise<void> {
         const interfaces: string[] = this.getInterfaces();
         if (interfaces.length) {
-            if (process.env.CI) {
+            if (process.env.GITHUB_ACTION) {
                 this.log.warn('We are running in CI. Cannot check nmcli');
                 return;
             }
