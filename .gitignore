@@ -1,20 +1,11 @@
 .git
 .idea
-*.code-workspace
 node_modules
-nbproject
-data/network.json
 
 # npm package files
 iobroker.*.tgz
 
 Thumbs.db
 
-# i18n intermediate files
-admin/i18n/flat.txt
-admin/i18n/*/flat.txt
 /.vscode
-/src/package-lock.json
-/src/.eslintcache
-/pnpm-lock.yaml
-/src/pnpm-lock.yaml
+/src-admin/package-lock.json

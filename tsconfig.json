@@ -1,36 +1,27 @@
 {
     "compileOnSave": true,
     "compilerOptions": {
-        // do not compile anything, this file is just to configure type checking
-        "noEmit": true,
-
-        // check JS files
         "allowJs": true,
-        "checkJs": true,
-
+        "checkJs": false,
+        "noEmit": false,
+        "declaration": false,
+        "skipLibCheck": true,
         "module": "commonjs",
-        "moduleResolution": "node",
-        // this is necessary for the automatic typing of the adapter config
+        "outDir": "./dist/",
         "resolveJsonModule": true,
-
-        // Set this to false if you want to disable the very strict rules (not recommended)
-        "strict": false,
-        // Or enable some of those features for more fine-grained control
-        // "strictNullChecks": true,
-        // "strictPropertyInitialization": true,
-        // "strictBindCallApply": true,
-        "noImplicitAny": false,
+        "target": "esnext",
+        "baseUrl": ".",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "noImplicitAny": true,
         // "noUnusedLocals": true,
         // "noUnusedParameters": true,
-
-        // Consider targetting es2017 or higher if you require the new NodeJS 8+ features
-        "target": "es2015"
+        "useUnknownInCatchVariables": false,
+        "types": ["@iobroker/types", "@types/node"]
     },
     "include": [
         // "**/*.js",
-        "**/*.d.ts",
-        "eslint.config.mjs",
-        "prettier.config.mjs",
+        "src/*.ts",
     ],
-    "exclude": ["node_modules/**", "admin/**", "src/**"]
+    "exclude": ["node_modules/**", "admin/**", "src-admin/**"]
 }
