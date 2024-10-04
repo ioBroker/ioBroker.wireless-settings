@@ -15,7 +15,7 @@ class NetworkSettings extends adapter_core_1.Adapter {
     constructor(options = {}) {
         super({
             ...options,
-            name: 'network-settings',
+            name: 'wireless-settings',
             unload: (cb) => this.unload(cb),
             ready: () => this.main(),
             message: obj => {
@@ -207,6 +207,9 @@ class NetworkSettings extends adapter_core_1.Adapter {
             // Get from the first line the position of the columns
             const items = NetworkSettings.parseTable(iwlist);
             items.forEach(item => {
+                if (item.SSID === '--') {
+                    return;
+                }
                 networks.push({
                     security: item.SECURITY,
                     ssid: item.SSID,

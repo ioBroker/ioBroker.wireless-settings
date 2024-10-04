@@ -68,18 +68,23 @@ const styles = {
         display: 'block',
         marginBottom: 10,
     },
+    speed: {
+        opacity: 0.5,
+        fontSize: 10,
+        fontStyle: 'italic',
+    },
 };
 
 const getWiFiIcon = (open, quality) => {
     const style = { marginRight: 8 };
 
-    if (quality > -67) {
+    if (quality > 80) {
         return open ? <SignalWifi4BarIcon style={style} /> : <SignalWifi4BarLockIcon style={style} />;
     }
-    if (quality > -70) {
+    if (quality > 60) {
         return open ? <SignalWifi3BarIcon style={style} /> : <SignalWifi3BarLockIcon style={style} />;
     }
-    if (quality > -80) {
+    if (quality > 30    ) {
         return open ? <SignalWifi2BarIcon style={style} /> : <SignalWifi2BarLockIcon style={style} />;
     }
     return open ? <SignalWifi1BarIcon style={style} /> : <SignalWifi1BarLockIcon style={style} />;
@@ -539,6 +544,7 @@ class App extends GenericApp {
                             {getWiFiIcon(wifi.security.includes('--'), parseInt(wifi.quality))}
                         </Tooltip>
                         {wifi.ssid}
+                        <div style={{ styles.speed }}>{wifi.speed}</div>
                     </Button>
                     {connected ? (
                         <Button
