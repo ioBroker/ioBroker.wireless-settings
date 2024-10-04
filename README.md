@@ -21,9 +21,7 @@ This adapter can set up the wireless on Raspberry Pi. It can be used to connect 
 
 This adapter assumes that `iobroker` user may execute the following commands:
 
--   `/usr/sbin/iw`
 -   `/usr/bin/nmcli`
--   `/usr/sbin/iwlist`
 
 You can add the rights by calling:
 
@@ -38,7 +36,7 @@ sudo /opt/iobroker/node_modules/iobroker.wireless-settings/wlan_rights.sh
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.6.3 (2024-10-04)
 
 -   (@GermanBluefox) Updated for raspberry 5
 -   (@GermanBluefox) Change name to "wireless-settings"
