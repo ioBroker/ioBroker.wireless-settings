@@ -507,9 +507,10 @@ class App extends GenericApp {
                     <div style={{ width: '100%', height: 4 }} />
                 )}
                 <FormControlLabel
+                    style={{ marginLeft: 8 }}
                     control={
                         <Switch
-                            disabled={this.state.processing}
+                            disabled={this.state.processing || this.state.firstRequest < 2}
                             checked={this.state.scanWifi}
                             onChange={() => this.startWifiScan()}
                         />
@@ -549,7 +550,11 @@ class App extends GenericApp {
                                 }
                             })
                         }
-                        style={{ position: 'relative', paddingLeft: connected ? undefined : 16 }}
+                        style={{
+                            position: 'relative',
+                            paddingLeft: connected ? undefined : 16,
+                            textTransform: 'inherit',
+                        }}
                     >
                         <Tooltip title={`${wifi.quality} dBm`}>
                             {getWiFiIcon(wifi.security.includes('--'), parseInt(wifi.quality))}
