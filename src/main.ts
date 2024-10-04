@@ -47,7 +47,7 @@ class NetworkSettings extends Adapter {
     constructor(options: Partial<AdapterOptions> = {}) {
         super({
             ...options,
-            name: 'network-settings',
+            name: 'wireless-settings',
             unload: (cb: () => void): Promise<void> => this.unload(cb),
             ready: () => this.main(),
             message: obj => {
@@ -132,24 +132,36 @@ class NetworkSettings extends Adapter {
 
     static parseTable(text: string): Record<string, string>[] {
         const lines = text.split('\n');
-        const header = lines.shift();
+        let header = lines.shift();
         if (!header) {
             return [];
         }
-        const positions: Record<string, number> = {};
-        const parts = header.split(/\s+/);
-        parts.forEach((part, i) =>
-            positions[part] = header.indexOf(part));
+        const positions: { name: string; position: number }[] = [];
+        const parts = header.split(/\s+/).filter(i => i);
+        let offset = 0;
+        // Get the position of each word in line
+        parts.forEach((part, i) => {
+            const pos = header.indexOf(part);
+            positions[i] = { name: part, position: pos + offset };
+            header = header.substring(pos);
+            offset += pos;
+            let space = header.indexOf(' ');
+            if (space !== -1) {
+                offset += space;
+                header = header.substring(space);
+            }
+        });
 
         const result: Record<string, string>[] = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const result: Record<string, string> = {};
-            Object.keys(positions).forEach(key => {
-                const from = positions[key];
-                const to = positions[key + 1] || line.length;
-                result[key] = line.substring(from, to - from).trim();
+            const obj: Record<string, string> = {};
+            positions.forEach((pos: { name: string; position: number }, i) => {
+                const from = pos.position;
+                const to = i !== positions.length - 1 ? positions[i + 1].position : line.length;
+                obj[pos.name] = line.substring(from, to).trim();
             });
+            result.push(obj);
         }
 
         return result;
@@ -231,6 +243,9 @@ class NetworkSettings extends Adapter {
             // Get from the first line the position of the columns
             const items: Record<string, string>[] = NetworkSettings.parseTable(iwlist);
             items.forEach(item => {
+                if (item.SSID === '--') {
+                    return;
+                }
                 networks.push({
                     security: item.SECURITY as ('--' | 'WPA' | 'WPA2'),
                     ssid: item.SSID,
@@ -281,6 +296,9 @@ class NetworkSettings extends Adapter {
     }
 
     async onWifiConnection(input: { iface: string }): Promise<string> {
+        if (this.stopping) {
+            return '';
+        }
         const lines = await this.justExec('nmcli device status');
         // DEVICE         TYPE      STATE                   CONNECTION
         // eth0           ethernet  connected               Wired connection 1
@@ -298,6 +316,9 @@ class NetworkSettings extends Adapter {
     }
 
     async onWifiConnect(input: { ssid: string; password: string; iface: string }): Promise<boolean> {
+        if (this.stopping) {
+            return false;
+        }
         try {
             let result = await this.justExec(`nmcli radio wifi`);
             if (result !== 'enabled') {
@@ -319,6 +340,9 @@ class NetworkSettings extends Adapter {
     }
 
     async onWifiDisconnect(input: { ssid: string }): Promise<boolean> {
+        if (this.stopping) {
+            return false;
+        }
         const result = await this.sudo(`nmcli connection down id "${input.ssid}"`);
         this.log.debug(`Disable wifi "${input.ssid}" => ${result}`);
         return result.includes('successfully');

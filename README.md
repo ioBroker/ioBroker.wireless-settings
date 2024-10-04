@@ -1,19 +1,19 @@
-![Logo](admin/network-settings.png)
+![Logo](admin/wireless-settings.png)
 
-# ioBroker.network-settings
+# ioBroker.wireless-settings
 
-[![NPM version](http://img.shields.io/npm/v/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network-settings)
-[![Downloads](https://img.shields.io/npm/dm/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.network-settings)
-![Number of Installations (latest)](http://iobroker.live/badges/network-settings-installed.svg)
-![Number of Installations (stable)](http://iobroker.live/badges/network-settings-stable.svg)
-[![Dependency Status](https://img.shields.io/david/ioBroker/iobroker.network-settings.svg)](https://david-dm.org/ioBroker/iobroker.network-settings)
-[![Known Vulnerabilities](https://snyk.io/test/github/ioBroker/ioBroker.network-settings/badge.svg)](https://snyk.io/test/github/ioBroker/ioBroker.network-settings)
+[![NPM version](http://img.shields.io/npm/v/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.wireless-settings)
+[![Downloads](https://img.shields.io/npm/dm/iobroker.telemetry.svg)](https://www.npmjs.com/package/iobroker.wireless-settings)
+![Number of Installations (latest)](http://iobroker.live/badges/wireless-settings-installed.svg)
+![Number of Installations (stable)](http://iobroker.live/badges/wireless-settings-stable.svg)
+[![Dependency Status](https://img.shields.io/david/ioBroker/iobroker.wireless-settings.svg)](https://david-dm.org/ioBroker/iobroker.wireless-settings)
+[![Known Vulnerabilities](https://snyk.io/test/github/ioBroker/ioBroker.wireless-settings/badge.svg)](https://snyk.io/test/github/ioBroker/ioBroker.wireless-settings)
 
-[![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.network-settings/)
+[![NPM](https://nodei.co/npm/iobroker.telemetry.png?downloads=true)](https://nodei.co/npm/iobroker.wireless-settings/)
 
-## Adapter for Wi-Fi and network settings on Raspberry Pi
+## Adapter for Wi-Fi and wireless settings on Raspberry Pi
 
-This adapter can set up the network on Raspberry Pi. It can be used for Wi-Fi and for LAN.
+This adapter can set up the wireless on Raspberry Pi. It can be used for Wi-Fi and for LAN.
 
 ## Required permissions
 This adapter assumes that `iobroker` user may execute the following commands:
@@ -23,8 +23,8 @@ This adapter assumes that `iobroker` user may execute the following commands:
 
 You can add the rights by calling:
 ```
-sudo chmod +x /opt/iobroker/node_modules/iobroker.network-settings/wlan_rights.sh
-sudo /opt/iobroker/node_modules/iobroker.network-settings/wlan_rights.sh
+sudo chmod +x /opt/iobroker/node_modules/iobroker.wireless-settings/wlan_rights.sh
+sudo /opt/iobroker/node_modules/iobroker.wireless-settings/wlan_rights.sh
 ```
 
 <!--
@@ -36,6 +36,7 @@ sudo /opt/iobroker/node_modules/iobroker.network-settings/wlan_rights.sh
 ### 0.4.2 (2024-10-03)
 
 - (@GermanBluefox) Updated for raspberry 5
+- (@GermanBluefox) Change name to "wireless-settings"
 
 ### 0.4.0 (2024-10-03)
 

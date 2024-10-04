@@ -1,6 +1,6 @@
 {
     "common": {
-        "name": "network-settings",
+        "name": "wireless-settings",
         "version": "0.4.2",
         "news": {
             "0.4.2": {
@@ -99,10 +99,10 @@
         "license": "MIT",
         "platform": "Javascript/Node.js",
         "main": "dist/main.js",
-        "icon": "network-settings.png",
+        "icon": "wireless-settings.png",
         "enabled": true,
-        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.network-settings/master/admin/network-settings.png",
-        "readme": "https://github.com/ioBroker/ioBroker.network-settings/blob/master/README.md",
+        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.wireless-settings/master/admin/wireless-settings.png",
+        "readme": "https://github.com/ioBroker/ioBroker.wireless-settings/blob/master/README.md",
         "loglevel": "info",
         "mode": "daemon",
         "type": "communication",
@@ -110,7 +110,12 @@
         "materialize": true,
         "messagebox": true,
         "connectionType": "local",
-        "dataSource": "none"
+        "dataSource": "none",
+        "licenseInformation": {
+            "license": "MIT",
+            "type": "free"
+        },
+        "tier": 3
     },
     "native": {},
     "objects": [],

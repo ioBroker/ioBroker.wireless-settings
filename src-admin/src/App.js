@@ -7,7 +7,6 @@ import {
     Tabs,
     Tab,
     Button,
-    Checkbox,
     Dialog,
     DialogActions,
     DialogContent,
@@ -62,6 +61,9 @@ const styles = {
     buttonIcon: {
         marginLeft: 10,
     },
+    connected: {
+        color: 'green',
+    },
     input: {
         display: 'block',
         marginBottom: 10,
@@ -100,7 +102,7 @@ class App extends GenericApp {
             'zh-cn': zhLang,
         };
         extendedProps.doNotLoadAllObjects = true;
-        extendedProps.adapterName = 'network-settings';
+        extendedProps.adapterName = 'wireless-settings';
         extendedProps.socket = {
             host: '192.168.100.2',
             port: 8081,
@@ -109,7 +111,7 @@ class App extends GenericApp {
         super(props, extendedProps);
 
         Object.assign(this.state, {
-            tabValue: window.localStorage.getItem(`network.${this.instance}.tab`) || '',
+            tabValue: window.localStorage.getItem(`wireless.${this.instance}.tab`) || '',
             interfaces: null,
             interfacesChanged: [],
             wifi: [],
@@ -133,13 +135,16 @@ class App extends GenericApp {
             clearTimeout(this.scanWifiTimer);
             this.scanWifiTimer = null;
         }
-        this.socket.unsubscribeState(`system.adapter.network-settings.${this.instance}.alive`, this.onAliveChanged);
+        this.socket.unsubscribeState(`system.adapter.wireless-settings.${this.instance}.alive`, this.onAliveChanged);
     }
 
     async onConnectionReady() {
-        const alive = await this.socket.getState(`system.adapter.network-settings.${this.instance}.alive`);
+        const alive = await this.socket.getState(`system.adapter.wireless-settings.${this.instance}.alive`);
         this.setState({ alive: !!alive?.val }, async () => {
-            await this.socket.subscribeState(`system.adapter.network-settings.${this.instance}.alive`, this.onAliveChanged);
+            await this.socket.subscribeState(
+                `system.adapter.wireless-settings.${this.instance}.alive`,
+                this.onAliveChanged,
+            );
             await this.refresh();
         });
     }
@@ -159,7 +164,7 @@ class App extends GenericApp {
             return new Promise(resolve => this.setState({ wifiConnection: '' }, () => resolve()));
         }
 
-        const wifiConnection = await this.socket.sendTo(`network-settings.${this.instance}`, 'wifiConnection', {
+        const wifiConnection = await this.socket.sendTo(`wireless-settings.${this.instance}`, 'wifiConnection', {
             iface: this.state.tabValue,
         });
         return new Promise(resolve => this.setState({ wifiConnection }, () => resolve()));
@@ -196,7 +201,7 @@ class App extends GenericApp {
             this.setState({ scanning: true }, async () => {
                 await this.refreshCurrentSSID();
 
-                let wifi = await this.socket.sendTo(`network-settings.${this.instance}`, 'wifi', null);
+                let wifi = await this.socket.sendTo(`wireless-settings.${this.instance}`, 'wifi', null);
                 if (timer) {
                     clearTimeout(timer);
                     timer = null;
@@ -238,7 +243,7 @@ class App extends GenericApp {
         if (this.state.firstRequest === 0) {
             this.setState({ firstRequest: 1 });
         }
-        let interfaces = await this.socket.sendTo(`network-settings.${this.instance}`, 'interfaces', null);
+        let interfaces = await this.socket.sendTo(`wireless-settings.${this.instance}`, 'interfaces', null);
 
         interfaces.sort((item1, item2) => (item1.mac > item2.mac ? -1 : 1));
         interfaces.sort((item1, item2) =>
@@ -246,13 +251,7 @@ class App extends GenericApp {
         );
         interfaces.sort((item1, item2) => (!item1.virtual && !item2.virtual ? 0 : !item1.virtual ? -1 : 1));
         interfaces = interfaces.filter(interfaceItem => interfaceItem.ip4 !== '127.0.0.1');
-        interfaces = interfaces.map(interfaceItem => {
-            if (typeof interfaceItem.dhcp === 'string') {
-                interfaceItem.dhcp = JSON.parse(interfaceItem.dhcp);
-            }
 
-            return interfaceItem;
-        });
         let tabValue = this.state.tabValue;
         if (!interfaces.find(i => i.iface === tabValue)) {
             if (interfaces.find(i => i.iface === 'wlan0')) {
@@ -270,7 +269,7 @@ class App extends GenericApp {
             },
             async () => {
                 await this.refreshWiFi();
-                const dns = await this.socket.sendTo(`network-settings.${this.instance}`, 'dns', null);
+                const dns = await this.socket.sendTo(`wireless-settings.${this.instance}`, 'dns', null);
                 this.setState({ dns, firstRequest: 2 });
             },
         );
@@ -282,7 +281,7 @@ class App extends GenericApp {
         }
         this.setState({ processing: true }, () =>
             this.socket
-                .sendTo(`network-settings.${this.instance}`, 'wifiConnect', {
+                .sendTo(`wireless-settings.${this.instance}`, 'wifiConnect', {
                     ssid,
                     password,
                     iface: this.state.tabValue,
@@ -304,7 +303,7 @@ class App extends GenericApp {
         }
         this.setState({ processing: true }, () =>
             this.socket
-                .sendTo(`network-settings.${this.instance}`, 'wifiDisconnect', {
+                .sendTo(`wireless-settings.${this.instance}`, 'wifiDisconnect', {
                     iface: this.state.tabValue,
                     ssid: this.state.wifiConnection || '',
                 })
@@ -417,16 +416,7 @@ class App extends GenericApp {
         return (
             <div style={{ display: 'flex', gap: 32 }}>
                 <div>
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                disabled
-                                checked={interfaceItem.dhcp}
-                            />
-                        }
-                        label={I18n.t('DHCP')}
-                    />
-                    {interfaceItem.ip4 ? <h4>IPv4</h4> : null}
+                    {interfaceItem.ip4 ? <h4 style={{ marginTop: 8 }}>IPv4</h4> : null}
                     {interfaceItem.ip4 ? (
                         <TextField
                             variant="standard"
@@ -445,7 +435,7 @@ class App extends GenericApp {
                             disabled
                         />
                     ) : null}
-                    {interfaceItem.ip4 ? (
+                    {interfaceItem.gateway ? (
                         <TextField
                             variant="standard"
                             style={styles.input}
@@ -496,7 +486,11 @@ class App extends GenericApp {
 
         return (
             <div>
-                {this.state.processing || this.state.firstRequest < 2 ? <LinearProgress /> : null}
+                {this.state.processing || this.state.firstRequest < 2 ? (
+                    <LinearProgress />
+                ) : (
+                    <div style={{ width: '100%', height: 4 }} />
+                )}
                 <FormControlLabel
                     control={
                         <Switch
@@ -611,9 +605,23 @@ class App extends GenericApp {
                                         label={
                                             <div style={styles.tabContainer}>
                                                 {interfaceItem.type === 'wired' ? (
-                                                    <SettingsInputComponentIcon style={styles.buttonIcon} />
+                                                    <SettingsInputComponentIcon
+                                                        style={{
+                                                            ...styles.buttonIcon,
+                                                            ...(interfaceItem.status === 'connected'
+                                                                ? styles.connected
+                                                                : undefined),
+                                                        }}
+                                                    />
                                                 ) : (
-                                                    <WifiIcon style={styles.buttonIcon} />
+                                                    <WifiIcon
+                                                        style={{
+                                                            ...styles.buttonIcon,
+                                                            ...(interfaceItem.status === 'connected'
+                                                                ? styles.connected
+                                                                : undefined),
+                                                        }}
+                                                    />
                                                 )}
                                                 {interfaceItem.iface}
                                             </div>

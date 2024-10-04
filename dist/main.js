@@ -103,22 +103,35 @@ class NetworkSettings extends adapter_core_1.Adapter {
     }
     static parseTable(text) {
         const lines = text.split('\n');
-        const header = lines.shift();
+        let header = lines.shift();
         if (!header) {
             return [];
         }
-        const positions = {};
-        const parts = header.split(/\s+/);
-        parts.forEach((part, i) => positions[part] = header.indexOf(part));
+        const positions = [];
+        const parts = header.split(/\s+/).filter(i => i);
+        let offset = 0;
+        // Get the position of each word in line
+        parts.forEach((part, i) => {
+            const pos = header.indexOf(part);
+            positions[i] = { name: part, position: pos + offset };
+            header = header.substring(pos);
+            offset += pos;
+            let space = header.indexOf(' ');
+            if (space !== -1) {
+                offset += space;
+                header = header.substring(space);
+            }
+        });
         const result = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const result = {};
-            Object.keys(positions).forEach(key => {
-                const from = positions[key];
-                const to = positions[key + 1] || line.length;
-                result[key] = line.substring(from, to - from).trim();
+            const obj = {};
+            positions.forEach((pos, i) => {
+                const from = pos.position;
+                const to = i !== positions.length - 1 ? positions[i + 1].position : line.length;
+                obj[pos.name] = line.substring(from, to).trim();
             });
+            result.push(obj);
         }
         return result;
     }
@@ -238,6 +251,9 @@ class NetworkSettings extends adapter_core_1.Adapter {
         return (0, node_dns_1.getServers)();
     }
     async onWifiConnection(input) {
+        if (this.stopping) {
+            return '';
+        }
         const lines = await this.justExec('nmcli device status');
         // DEVICE         TYPE      STATE                   CONNECTION
         // eth0           ethernet  connected               Wired connection 1
@@ -253,6 +269,9 @@ class NetworkSettings extends adapter_core_1.Adapter {
         return '';
     }
     async onWifiConnect(input) {
+        if (this.stopping) {
+            return false;
+        }
         try {
             let result = await this.justExec(`nmcli radio wifi`);
             if (result !== 'enabled') {
@@ -274,6 +293,9 @@ class NetworkSettings extends adapter_core_1.Adapter {
         return false;
     }
     async onWifiDisconnect(input) {
+        if (this.stopping) {
+            return false;
+        }
         const result = await this.sudo(`nmcli connection down id "${input.ssid}"`);
         this.log.debug(`Disable wifi "${input.ssid}" => ${result}`);
         return result.includes('successfully');
