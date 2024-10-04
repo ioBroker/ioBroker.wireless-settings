@@ -1,90 +1,65 @@
-import { Adapter, type AdapterOptions } from '@iobroker/adapter-core';
-import { networkInterfaces } from 'node:os';
-import { getServers as getDnsServers } from 'node:dns';
-import { exec } from 'node:child_process';
-
-type ConnectionState = 'connected' | 'disconnected' | 'connecting';
-interface WirelessNetwork {
-    security: '--' | 'WPA' | 'WPA2';
-    ssid: string;
-    quality: number;
-    channel: number;
-    speed: string;
-}
-
-interface NetworkInterface {
-    iface: string;
-    ip4: string;
-    ip4subnet: string;
-    ip6: string;
-    ip6subnet: string;
-    mac: string;
-    gateway: string;
-    dhcp: boolean;
-    dns: string[];
-    type: 'wireless' | 'wired';
-    editable: false;
-    status: ConnectionState;
-}
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const adapter_core_1 = require("@iobroker/adapter-core");
+const node_os_1 = require("node:os");
+const node_dns_1 = require("node:dns");
+const node_child_process_1 = require("node:child_process");
 // Take the logic for WI-FI here
 // https://github.com/RPi-Distro/raspi-config/blob/bookworm/raspi-config#L2848
 /**
  * The adapter instance
  */
-class NetworkSettings extends Adapter {
-    private cmdRunning: string | boolean = false;
-    private stopping: boolean = false;
-
-    constructor(options: Partial<AdapterOptions> = {}) {
+class NetworkSettings extends adapter_core_1.Adapter {
+    cmdRunning = false;
+    stopping = false;
+    constructor(options = {}) {
         super({
             ...options,
             name: 'wireless-settings',
-            unload: (cb: () => void): Promise<void> => this.unload(cb),
+            unload: (cb) => this.unload(cb),
             ready: () => this.main(),
             message: obj => {
                 if (typeof obj === 'object' && obj?.callback) {
                     if (obj.command === 'interfaces') {
-                        void this.onInterfaces().then(result =>
-                            this.sendTo(obj.from, obj.command, result, obj.callback),
-                        );
-                    } else if (obj.command === 'wifi') {
+                        void this.onInterfaces().then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                    }
+                    else if (obj.command === 'wifi') {
                         void this.onWifi().then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
-                    } else if (obj.command === 'dns') {
+                    }
+                    else if (obj.command === 'dns') {
                         this.sendTo(obj.from, obj.command, this.onDns(), obj.callback);
-                    } else if (obj.command === 'wifiConnection') {
-                        void this.onWifiConnection(obj.message).then(result =>
-                            this.sendTo(obj.from, obj.command, result, obj.callback),
-                        );
-                    } else if (obj.command === 'wifiConnect') {
-                        void this.onWifiConnect(obj.message).then(result =>
-                            this.sendTo(obj.from, obj.command, result, obj.callback),
-                        );
-                    } else if (obj.command === 'wifiDisconnect') {
-                        void this.onWifiDisconnect(obj.message).then(result =>
-                            this.sendTo(obj.from, obj.command, result, obj.callback),
-                        );
-                    } else {
+                    }
+                    else if (obj.command === 'wifiConnection') {
+                        void this.onWifiConnection(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                    }
+                    else if (obj.command === 'wifiConnect') {
+                        void this.onWifiConnect(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                    }
+                    else if (obj.command === 'wifiDisconnect') {
+                        void this.onWifiDisconnect(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                    }
+                    else {
                         this.log.error(`Unknown command: ${obj.command}`);
                     }
                 }
             },
         });
     }
-
-    justExec(command: string): Promise<string> {
+    justExec(command) {
         if (!this.stopping) {
             this.cmdRunning = command;
             return new Promise((resolve, reject) => {
-                exec(command, (error, stdout, stderr) => {
+                (0, node_child_process_1.exec)(command, (error, stdout, stderr) => {
                     this.cmdRunning = false;
                     if (error) {
                         this.log.error(`Cannot execute: ${error.message}`);
                         reject(error);
-                    } else if (stderr) {
+                    }
+                    else if (stderr) {
                         this.log.error(`Cannot execute: ${stderr}`);
                         reject(new Error(stderr));
-                    } else {
+                    }
+                    else {
                         this.log.debug(`Result for "${command}": ${stdout}`);
                         resolve(stdout.trim());
                     }
@@ -93,26 +68,23 @@ class NetworkSettings extends Adapter {
         }
         return Promise.resolve('');
     }
-
-    sudo(command: string): Promise<string> {
+    sudo(command) {
         return this.justExec(`sudo ${command}`);
     }
-
-    getInterfaces(): string[] {
-        const ifaces = networkInterfaces();
+    getInterfaces() {
+        const ifaces = (0, node_os_1.networkInterfaces)();
         return Object.keys(ifaces).filter(iface => !ifaces[iface][0].internal);
     }
-
-    waitForEnd(callback?: (timeout: boolean) => void, _started?: number): void {
+    waitForEnd(callback, _started) {
         _started = _started || Date.now();
         if (this.cmdRunning && Date.now() - _started < 4000) {
             setTimeout(() => this.waitForEnd(callback, _started), 200);
-        } else if (callback) {
+        }
+        else if (callback) {
             callback(Date.now() - _started >= 4000);
         }
     }
-
-    async unload(callback: () => void): Promise<void> {
+    async unload(callback) {
         this.stopping = true;
         await this.setState('info.connection', false, true);
         this.waitForEnd(timeout => {
@@ -122,21 +94,19 @@ class NetworkSettings extends Adapter {
             }
         });
     }
-
-    async main(): Promise<void> {
-        const interfaces: string[] = this.getInterfaces();
+    async main() {
+        const interfaces = this.getInterfaces();
         if (interfaces.length) {
             await this.setState('info.connection', true, true);
         }
     }
-
-    static parseTable(text: string): Record<string, string>[] {
+    static parseTable(text) {
         const lines = text.split('\n');
         let header = lines.shift();
         if (!header) {
             return [];
         }
-        const positions: { name: string; position: number }[] = [];
+        const positions = [];
         const parts = header.split(/\s+/).filter(i => i);
         let offset = 0;
         // Get the position of each word in line
@@ -151,33 +121,30 @@ class NetworkSettings extends Adapter {
                 header = header.substring(space);
             }
         });
-
-        const result: Record<string, string>[] = [];
+        const result = [];
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            const obj: Record<string, string> = {};
-            positions.forEach((pos: { name: string; position: number }, i) => {
+            const obj = {};
+            positions.forEach((pos, i) => {
                 const from = pos.position;
                 const to = i !== positions.length - 1 ? positions[i + 1].position : line.length;
                 obj[pos.name] = line.substring(from, to).trim();
             });
             result.push(obj);
         }
-
         return result;
     }
-
-    async onInterfaces(): Promise<NetworkInterface[]> {
+    async onInterfaces() {
         if (this.stopping) {
             return [];
         }
-        const ifaces = networkInterfaces();
-        const result: NetworkInterface[] = [];
+        const ifaces = (0, node_os_1.networkInterfaces)();
+        const result = [];
         Object.keys(ifaces).forEach(iface => {
             const ip4 = ifaces[iface].find(addr => addr.family === 'IPv4');
             const ip6 = ifaces[iface].find(addr => addr.family === 'IPv6');
             const gateway = '';
-            const dns = getDnsServers();
+            const dns = (0, node_dns_1.getServers)();
             const dhcp = false;
             const type = iface[0] === 'w' ? 'wireless' : 'wired';
             result.push({
@@ -202,21 +169,17 @@ class NetworkSettings extends Adapter {
         // lo             loopback  connected (externally)  lo
         // wlan0          wifi      connected               Android12345
         // p2p-dev-wlan0  wifi-p2p  disconnected            --
-
         // Extract status
         for (let i = 0; i < items.length; i++) {
             const item = result.find(item => item.iface === items[i].DEVICE);
             if (item) {
-                item.status = items[i].STATE.split(' ')[0] as ConnectionState;
+                item.status = items[i].STATE.split(' ')[0];
             }
         }
-
         return result;
     }
-
-    async onWifi(): Promise<WirelessNetwork[]> {
-        const networks: WirelessNetwork[] = [];
-
+    async onWifi() {
+        const networks = [];
         if (!this.stopping) {
             const iwlist = await this.sudo('nmcli dev wifi list --rescan yes');
             // IN-USE  BSSID              SSID                MODE   CHAN  RATE        SIGNAL  BARS  SECURITY
@@ -241,13 +204,13 @@ class NetworkSettings extends Adapter {
             //         22:FF:29:XX:1D:69  --                  Infra  40    405 Mbit/s  22      ▂___  WPA2
             // Parse information
             // Get from the first line the position of the columns
-            const items: Record<string, string>[] = NetworkSettings.parseTable(iwlist);
+            const items = NetworkSettings.parseTable(iwlist);
             items.forEach(item => {
                 if (item.SSID === '--') {
                     return;
                 }
                 networks.push({
-                    security: item.SECURITY as '--' | 'WPA' | 'WPA2',
+                    security: item.SECURITY,
                     ssid: item.SSID,
                     quality: parseFloat(item.SIGNAL),
                     speed: item.RATE,
@@ -255,7 +218,6 @@ class NetworkSettings extends Adapter {
                 });
             });
         }
-
         // Remove SSID with the same name and take the strongest one
         let changed;
         do {
@@ -271,7 +233,7 @@ class NetworkSettings extends Adapter {
                             max = j;
                         }
                     }
-                    const strongest: WirelessNetwork = networks[max];
+                    const strongest = networks[max];
                     // delete all SSID with the same name
                     for (let j = networks.length - 1; j >= 0; j--) {
                         if (networks[j].ssid === ssid) {
@@ -284,15 +246,12 @@ class NetworkSettings extends Adapter {
                 }
             }
         } while (changed);
-
         return networks;
     }
-
-    onDns(): string[] {
-        return getDnsServers();
+    onDns() {
+        return (0, node_dns_1.getServers)();
     }
-
-    async onWifiConnection(input: { iface: string }): Promise<string> {
+    async onWifiConnection(input) {
         if (this.stopping) {
             return '';
         }
@@ -302,8 +261,7 @@ class NetworkSettings extends Adapter {
         // lo             loopback  connected (externally)  lo
         // wlan0          wifi      connected               Android12345
         // p2p-dev-wlan0  wifi-p2p  disconnected            --
-        const items: Record<string, string>[] = NetworkSettings.parseTable(lines);
-
+        const items = NetworkSettings.parseTable(lines);
         // Extract status
         const iface = items.find(item => item.DEVICE === input.iface);
         if (iface) {
@@ -311,8 +269,7 @@ class NetworkSettings extends Adapter {
         }
         return '';
     }
-
-    async onWifiConnect(input: { ssid: string; password: string; iface: string }): Promise<boolean> {
+    async onWifiConnect(input) {
         if (this.stopping) {
             return false;
         }
@@ -322,23 +279,21 @@ class NetworkSettings extends Adapter {
                 result = await this.sudo(`nmcli radio wifi on`);
             }
             this.log.debug(`Enable radio => ${result}`);
-        } catch (e) {
+        }
+        catch (e) {
             this.log.error(`Cannot enable radio: ${e}`);
         }
-
         try {
-            const result = await this.sudo(
-                `nmcli device wifi connect "${input.ssid}" password "${input.password}" ifname "${input.iface}"`,
-            );
+            const result = await this.sudo(`nmcli device wifi connect "${input.ssid}" password "${input.password}" ifname "${input.iface}"`);
             this.log.debug(`Set wifi "${input.ssid}" on "${input.iface} => ${result}`);
             return result.includes('successfully');
-        } catch (e) {
+        }
+        catch (e) {
             this.log.error(`Cannot set wifi: ${e}`);
         }
         return false;
     }
-
-    async onWifiDisconnect(input: { ssid: string }): Promise<boolean> {
+    async onWifiDisconnect(input) {
         if (this.stopping) {
             return false;
         }
@@ -347,11 +302,11 @@ class NetworkSettings extends Adapter {
         return result.includes('successfully');
     }
 }
-
 if (require.main !== module) {
     // Export the constructor in compact mode
-    module.exports = (options: Partial<AdapterOptions> | undefined) => new NetworkSettings(options);
-} else {
+    module.exports = (options) => new NetworkSettings(options);
+}
+else {
     // otherwise start the instance directly
     (() => new NetworkSettings())();
 }

@@ -10,7 +10,7 @@
         "outDir": "./dist/",
         "resolveJsonModule": true,
         "target": "esnext",
-        "baseUrl": ".",
+        "baseUrl": "..",
         "moduleResolution": "node",
         "esModuleInterop": true,
         "noImplicitAny": true,
@@ -21,7 +21,7 @@
     },
     "include": [
         // "**/*.js",
-        "src/*.ts",
+        "*.ts",
     ],
     "exclude": ["node_modules/**", "admin/**", "src-admin/**"]
 }
