@@ -1,6 +1,6 @@
 {
-    "short_name": "Consumption",
-    "name": "ioBroker Consumption Configuration",
+    "short_name": "Wireless settings",
+    "name": "ioBroker Wireless settings",
     "icons": [
         {
             "src": "favicon.ico",

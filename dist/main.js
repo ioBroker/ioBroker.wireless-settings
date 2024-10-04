@@ -21,22 +21,22 @@ class NetworkSettings extends adapter_core_1.Adapter {
             message: obj => {
                 if (typeof obj === 'object' && obj?.callback) {
                     if (obj.command === 'interfaces') {
-                        this.onInterfaces().then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                        void this.onInterfaces().then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
                     }
                     else if (obj.command === 'wifi') {
-                        this.onWifi().then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                        void this.onWifi().then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
                     }
                     else if (obj.command === 'dns') {
-                        this.onDns().then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                        this.sendTo(obj.from, obj.command, this.onDns(), obj.callback);
                     }
                     else if (obj.command === 'wifiConnection') {
-                        this.onWifiConnection(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                        void this.onWifiConnection(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
                     }
                     else if (obj.command === 'wifiConnect') {
-                        this.onWifiConnect(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                        void this.onWifiConnect(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
                     }
                     else if (obj.command === 'wifiDisconnect') {
-                        this.onWifiDisconnect(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
+                        void this.onWifiDisconnect(obj.message).then(result => this.sendTo(obj.from, obj.command, result, obj.callback));
                     }
                     else {
                         this.log.error(`Unknown command: ${obj.command}`);
@@ -52,12 +52,12 @@ class NetworkSettings extends adapter_core_1.Adapter {
                 (0, node_child_process_1.exec)(command, (error, stdout, stderr) => {
                     this.cmdRunning = false;
                     if (error) {
-                        this.log.error(`Cannot execute: ${error}`);
+                        this.log.error(`Cannot execute: ${error.message}`);
                         reject(error);
                     }
                     else if (stderr) {
                         this.log.error(`Cannot execute: ${stderr}`);
-                        reject(stderr);
+                        reject(new Error(stderr));
                     }
                     else {
                         this.log.debug(`Result for "${command}": ${stdout}`);
@@ -68,11 +68,10 @@ class NetworkSettings extends adapter_core_1.Adapter {
         }
         return Promise.resolve('');
     }
-    ;
     sudo(command) {
         return this.justExec(`sudo ${command}`);
     }
-    async getInterfaces() {
+    getInterfaces() {
         const ifaces = (0, node_os_1.networkInterfaces)();
         return Object.keys(ifaces).filter(iface => !ifaces[iface][0].internal);
     }
@@ -96,7 +95,7 @@ class NetworkSettings extends adapter_core_1.Adapter {
         });
     }
     async main() {
-        const interfaces = await this.getInterfaces();
+        const interfaces = this.getInterfaces();
         if (interfaces.length) {
             await this.setState('info.connection', true, true);
         }
@@ -116,7 +115,7 @@ class NetworkSettings extends adapter_core_1.Adapter {
             positions[i] = { name: part, position: pos + offset };
             header = header.substring(pos);
             offset += pos;
-            let space = header.indexOf(' ');
+            const space = header.indexOf(' ');
             if (space !== -1) {
                 offset += space;
                 header = header.substring(space);
@@ -230,8 +229,7 @@ class NetworkSettings extends adapter_core_1.Adapter {
                     // find the strongest signal in the list
                     let max = i;
                     for (let j = 0; j < networks.length; j++) {
-                        if (networks[j].ssid === ssid &&
-                            networks[j].quality > networks[max].quality) {
+                        if (networks[j].ssid === ssid && networks[j].quality > networks[max].quality) {
                             max = j;
                         }
                     }
@@ -250,7 +248,7 @@ class NetworkSettings extends adapter_core_1.Adapter {
         } while (changed);
         return networks;
     }
-    async onDns() {
+    onDns() {
         return (0, node_dns_1.getServers)();
     }
     async onWifiConnection(input) {
