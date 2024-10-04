@@ -25,7 +25,7 @@ This adapter assumes that `iobroker` user may execute the following commands:
 
 You can add the rights by calling:
 
-```
+```shell
 sudo chmod +x /opt/iobroker/node_modules/iobroker.wireless-settings/wlan_rights.sh
 sudo /opt/iobroker/node_modules/iobroker.wireless-settings/wlan_rights.sh
 ```

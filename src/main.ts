@@ -76,19 +76,24 @@ class NetworkSettings extends Adapter {
         if (!this.stopping) {
             this.cmdRunning = command;
             return new Promise((resolve, reject) => {
-                exec(command, (error, stdout, stderr) => {
-                    this.cmdRunning = false;
-                    if (error) {
-                        this.log.error(`Cannot execute: ${error.message}`);
-                        reject(error);
-                    } else if (stderr) {
-                        this.log.error(`Cannot execute: ${stderr}`);
-                        reject(new Error(stderr));
-                    } else {
-                        this.log.debug(`Result for "${command}": ${stdout}`);
-                        resolve(stdout.trim());
-                    }
-                });
+                try {
+                    exec(command, (error, stdout, stderr) => {
+                        this.cmdRunning = false;
+                        if (error) {
+                            this.log.error(`Cannot execute: ${error.message}`);
+                            reject(error);
+                        } else if (stderr) {
+                            this.log.error(`Cannot execute: ${stderr}`);
+                            reject(new Error(stderr));
+                        } else {
+                            this.log.debug(`Result for "${command}": ${stdout}`);
+                            resolve(stdout.trim());
+                        }
+                    });
+                } catch (e) {
+                    this.log.error(`Cannot execute.: ${e}`);
+                    reject(new Error(e));
+                }
             });
         }
         return Promise.resolve('');
