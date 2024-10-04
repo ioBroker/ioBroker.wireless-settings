@@ -7,7 +7,7 @@
         "declaration": false,
         "skipLibCheck": true,
         "module": "commonjs",
-        "outDir": "./dist/",
+        "outDir": "../dist/",
         "resolveJsonModule": true,
         "target": "esnext",
         "baseUrl": "..",
