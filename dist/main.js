@@ -49,21 +49,27 @@ class NetworkSettings extends adapter_core_1.Adapter {
         if (!this.stopping) {
             this.cmdRunning = command;
             return new Promise((resolve, reject) => {
-                (0, node_child_process_1.exec)(command, (error, stdout, stderr) => {
-                    this.cmdRunning = false;
-                    if (error) {
-                        this.log.error(`Cannot execute: ${error.message}`);
-                        reject(error);
-                    }
-                    else if (stderr) {
-                        this.log.error(`Cannot execute: ${stderr}`);
-                        reject(new Error(stderr));
-                    }
-                    else {
-                        this.log.debug(`Result for "${command}": ${stdout}`);
-                        resolve(stdout.trim());
-                    }
-                });
+                try {
+                    (0, node_child_process_1.exec)(command, (error, stdout, stderr) => {
+                        this.cmdRunning = false;
+                        if (error) {
+                            this.log.error(`Cannot execute: ${error.message}`);
+                            reject(error);
+                        }
+                        else if (stderr) {
+                            this.log.error(`Cannot execute: ${stderr}`);
+                            reject(new Error(stderr));
+                        }
+                        else {
+                            this.log.debug(`Result for "${command}": ${stdout}`);
+                            resolve(stdout.trim());
+                        }
+                    });
+                }
+                catch (e) {
+                    this.log.error(`Cannot execute.: ${e}`);
+                    reject(new Error(e));
+                }
             });
         }
         return Promise.resolve('');
@@ -97,21 +103,31 @@ class NetworkSettings extends adapter_core_1.Adapter {
     async main() {
         const interfaces = this.getInterfaces();
         if (interfaces.length) {
-            // check that nmcli is installed on a system
-            try {
-                await this.justExec('nmcli device status');
-                await this.setState('info.connection', true, true);
-            }
-            catch (e) {
-                const lines = await this.justExec('which nmcli');
-                this.log.error('This adapter is only for Raspberry Pi (5) or for systems where "nmcli" is installed');
-                if (!lines) {
-                    this.log.error('Cannot find "nmcli": Please be sure that "nmcli" is installed and user "iobroker" may execute it with sudo rights');
-                }
-                else {
-                    this.log.error(`Cannot execute nmcli: ${e}`);
-                }
-            }
+            await this.setState('info.connection', true, true);
+            // if (process.env.GITHUB_ACTION) {
+            //     this.log.warn('We are running in CI. Cannot check nmcli');
+            //     return;
+            // }
+            // console.log(`ENV: ${JSON.stringify(process.env)}`);
+            // // check that nmcli is installed on a system
+            // try {
+            //     await this.justExec('nmcli device status');
+            //     await this.setState('info.connection', true, true);
+            // } catch (e) {
+            //     this.log.error('This adapter is only for Raspberry Pi (5) or for systems where "nmcli" is installed');
+            //     try {
+            //         const lines = await this.justExec('which nmcli');
+            //         if (!lines) {
+            //             this.log.error(
+            //                 'Cannot find "nmcli": Please be sure that "nmcli" is installed and user "iobroker" may execute it with sudo rights',
+            //             );
+            //         } else {
+            //             this.log.error(`Cannot execute nmcli: ${e}`);
+            //         }
+            //     } catch (e) {
+            //         this.log.error(`Cannot execute "which nmcli": ${e}`);
+            //     }
+            // }
         }
     }
     static parseTable(text) {
