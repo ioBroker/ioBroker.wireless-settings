@@ -650,9 +650,9 @@ class App extends GenericApp {
                         </AppBar>
 
                         <div style={styles.tabContent}>
+                            {!this.state.interfaces?.length && !this.state.alive ? I18n.t('Instance is not running') : null}
                             {interIndex !== -1 && this.renderInterface(this.state.interfaces[interIndex], interIndex)}
                         </div>
-                        {!this.state.interfaces?.length && !this.state.alive ? I18n.t('Instance is not running') : null}
                         {this.renderWifiDialog()}
                     </div>
                 </ThemeProvider>
