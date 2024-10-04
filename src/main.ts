@@ -141,13 +141,17 @@ class NetworkSettings extends Adapter {
                 await this.justExec('nmcli device status');
                 await this.setState('info.connection', true, true);
             } catch (e) {
-                const lines = await this.justExec('which nmcli');
                 this.log.error('This adapter is only for Raspberry Pi (5) or for systems where "nmcli" is installed');
-                if (!lines) {
-                    this.log.error(
-                        'Cannot find "nmcli": Please be sure that "nmcli" is installed and user "iobroker" may execute it with sudo rights',
-                    );
-                } else {
+                try {
+                    const lines = await this.justExec('which nmcli');
+                    if (!lines) {
+                        this.log.error(
+                            'Cannot find "nmcli": Please be sure that "nmcli" is installed and user "iobroker" may execute it with sudo rights',
+                        );
+                    } else {
+                        this.log.error(`Cannot execute nmcli: ${e}`);
+                    }
+                } catch (e) {
                     this.log.error(`Cannot execute nmcli: ${e}`);
                 }
             }
