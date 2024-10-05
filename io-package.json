@@ -61,7 +61,7 @@
     "readme": "https://github.com/ioBroker/ioBroker.wireless-settings/blob/master/README.md",
     "loglevel": "info",
     "mode": "daemon",
-    "type": "communication",
+    "type": "network",
     "compact": true,
     "materialize": true,
     "messagebox": true,
