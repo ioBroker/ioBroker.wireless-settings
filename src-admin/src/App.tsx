@@ -38,7 +38,14 @@ import {
     SignalWifi4BarLock as SignalWifi4BarLockIcon,
 } from '@mui/icons-material';
 
-import { Loader, I18n, GenericApp, type GenericAppProps, type GenericAppState } from '@iobroker/adapter-react-v5';
+import {
+    Loader,
+    I18n,
+    GenericApp,
+    type GenericAppProps,
+    type GenericAppState,
+    type GenericAppSettings,
+} from '@iobroker/gui-components';
 
 interface AppProps extends GenericAppProps {
     common?: Record<string, any>;
@@ -55,7 +62,6 @@ import esLang from './i18n/es.json';
 import plLang from './i18n/pl.json';
 import ukLang from './i18n/uk.json';
 import zhLang from './i18n/zh-cn.json';
-import type { GenericAppSettings } from '@iobroker/adapter-react-v5/build/types';
 
 type ConnectionState = 'connected' | 'disconnected' | 'connecting' | 'unavailable' | 'unmanaged' | 'unknown';
 

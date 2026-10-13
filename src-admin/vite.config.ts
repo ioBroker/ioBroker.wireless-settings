@@ -8,6 +8,9 @@ export default defineConfig(() => {
         },
         plugins: [react()],
         base: './',
+        resolve: {
+            tsconfigPaths: true,
+        },
         server: {
             port: 3000,
             proxy: {
