@@ -55,6 +55,7 @@ sudo /opt/iobroker/node_modules/iobroker.wireless-settings/wlan_rights.sh
 ### **WORK IN PROGRESS**
 - (iobroker-bot) Adapter requires node.js >= 22 now.
 - (ioBroker-Bot) Adapter requires js-controller >= 6.0.11 now.
+- (@GermanBluefox) Updated packages. The adapter can be installed on Linux only. Admin 7.6.20+ is required
 
 ### 1.2.2 (2026-04-19)
 
