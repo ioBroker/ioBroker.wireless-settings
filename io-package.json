@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "wireless-settings",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "news": {
+      "1.2.3": {
+        "en": "Adapter requires node.js >= 22 now.\nAdapter requires js-controller >= 6.0.11 now.\nUpdated packages. The adapter can be installed on Linux only. Admin 7.6.20+ is required",
+        "de": "Adapter benötigt jetzt node.js >= 22.\nAdapter benötigt jetzt JS-Controller >= 6.0.11.\nNeue Pakete. Der Adapter ist nur auf Linux montierbar. Admin 7.6.20+ ist nötig",
+        "ru": "Теперь для адаптера требуется файл node.js >= 22.\nТеперь для адаптера требуется js-контроллер >= 6.0.11.\nОбновленные пакеты. Адаптер можно установить только в Linux. Требуется администратор версии 7.6.20+",
+        "pt": "O adaptador exige node.js >= 2.\nO adaptador exige js-controller >= 6.0.11.\nPacotes novos. O adaptador só pode ser instalado em Linux. Admin 7.6.20+ é exigido",
+        "nl": "Voor de adapter is nu node.js >= 22 nodig.\nVoor de adapter is nu een js-controller >= 6.0.11 nodig.\nBijgewerkte pakketten. De adapter kan alleen op Linux worden geïnstalleerd. Admin 7.6.20+ is vereist",
+        "fr": "Adapter nécessite node.js >= 22.\nAdapter nécessite JS-Controller >= 6.0.11.\nPackages mis à jour. L'adaptateur ne peut être installé que sous Linux. Admin 7.6.20+ est requis",
+        "it": "Adapter richiede node.js >= 2 ora.\nAdapter richiede js-controller >= 6.0.11 ora.\nPacchi nuovi. L'adattatore si installa solo su Linux. Serve Admin 7.6.20+",
+        "es": "El adaptador necesita node.js >= 22 ahora.\nEl adaptador ahora requiere js-controller >= 6.0.11.\nPaquetes nuevos El adaptador solo se puede instalar en Linux. Se necesita Admin 7.6.20+",
+        "pl": "Adapter wymaga teraz node.js >= 22.\nAdapter wymaga teraz kontrolera js->= 6.0.11.\nZaktualizowane pakiety. Adapter można zainstalować tylko w systemie Linux. Administrator 7.6.20+ jest wymagany",
+        "uk": "Тепер адаптер вимагає node.js >= 22.\nДля адаптера зараз потрібен js-контролер >= 6.0.11.\nОновлені пакети. Адаптер можна встановити тільки на Linux. Адміністратор 7.6.20+ обов'язковий",
+        "zh-cn": "适配器现在需要 node.js >= 22。\n适配器现在需要 js-controller >= 6.0.11。\n更新了软件包。该适配器只能安装在 Linux 上。需要管理员 7.6.20+"
+      },
       "1.2.2": {
         "en": "Detect docker",
         "de": "Docker erkennen",

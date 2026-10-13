@@ -1,6 +1,6 @@
 {
   "name": "iobroker.wireless-settings",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "Network settings adapter for Raspberry Pi and Linux devices managed by NetworkManager",
   "author": {
     "name": "bluefox",
