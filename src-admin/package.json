@@ -11,7 +11,7 @@
         "@mui/icons-material": "^9.5.0",
         "@mui/material": "^9.5.0",
         "@originjs/vite-plugin-federation": "^1.4.1",
-        "@sentry/browser": "^11.7.0",
+        "@sentry/browser": "^11.8.0",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "@vitejs/plugin-react": "^6.1.2",
